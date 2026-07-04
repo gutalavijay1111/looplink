@@ -20,6 +20,13 @@ def test_campaign_token_is_generated_and_unique(make_campaign):
     assert first.token != second.token
 
 
+def test_campaign_name_must_be_unique_case_insensitively(make_campaign):
+    make_campaign(name="Summer Sale")
+
+    with pytest.raises(IntegrityError):
+        make_campaign(name="summer sale")
+
+
 def test_offer_belongs_to_campaign_with_params(make_campaign, make_offer):
     campaign = make_campaign()
 

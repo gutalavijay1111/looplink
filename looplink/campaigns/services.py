@@ -1,11 +1,13 @@
+import secrets
 from datetime import timedelta
 
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 from looplink.campaigns.exceptions import (
     CampaignLockedError,
     CampaignNotEnrollableError,
+    CampaignValidationError,
     IllegalTransitionError,
     StaleCampaignError,
 )
@@ -19,12 +21,15 @@ from looplink.campaigns.validators import (
 )
 
 DEFAULT_WINDOW = timedelta(days=7)
+DUPLICATE_NAME_ERROR = {"name": ["A campaign with this name already exists."]}
 
 
 def create_draft():
     now = timezone.now()
+    # Suffixed so back-to-back "New Campaign" clicks don't collide on the name's
+    # unique constraint before anyone has had a chance to rename it.
     return Campaign.objects.create(
-        name="Untitled campaign",
+        name=f"Untitled campaign {secrets.token_hex(3)}",
         description="",
         starts_at=now,
         ends_at=now + DEFAULT_WINDOW,
@@ -48,13 +53,19 @@ def _diagnose_write_failure(pk, expected_updated_at, *, required_status=None):
 
 @transaction.atomic
 def update_details(campaign, *, expected_updated_at, name, description, starts_at, ends_at):
-    validate_details(name=name, starts_at=starts_at, ends_at=ends_at)
+    validate_details(name=name, starts_at=starts_at, ends_at=ends_at, exclude_pk=campaign.pk)
     now = timezone.now()
-    updated = Campaign.objects.filter(
-        pk=campaign.pk,
-        updated_at=expected_updated_at,
-        status=CampaignStatus.DRAFT,
-    ).update(name=name, description=description, starts_at=starts_at, ends_at=ends_at, updated_at=now)
+    try:
+        # Nested atomic() opens a savepoint, so a name-collision IntegrityError
+        # only unwinds this statement rather than poisoning the outer transaction.
+        with transaction.atomic():
+            updated = Campaign.objects.filter(
+                pk=campaign.pk,
+                updated_at=expected_updated_at,
+                status=CampaignStatus.DRAFT,
+            ).update(name=name, description=description, starts_at=starts_at, ends_at=ends_at, updated_at=now)
+    except IntegrityError:
+        raise CampaignValidationError(DUPLICATE_NAME_ERROR) from None
     if not updated:
         _diagnose_write_failure(campaign.pk, expected_updated_at, required_status=CampaignStatus.DRAFT)
     campaign.refresh_from_db()

@@ -1,14 +1,21 @@
 from django.utils import timezone
 
 from looplink.campaigns.exceptions import CampaignValidationError
-from looplink.campaigns.models import OfferType
+from looplink.campaigns.models import Campaign, OfferType
 
 
-def validate_details(*, name, starts_at, ends_at):
+def validate_details(*, name, starts_at, ends_at, exclude_pk=None):
     """Basic sanity checks that apply whenever a draft is saved."""
     errors = {}
-    if not name or not name.strip():
+    stripped_name = (name or "").strip()
+    if not stripped_name:
         errors["name"] = ["Name is required."]
+    else:
+        conflicts = Campaign.objects.filter(name__iexact=stripped_name)
+        if exclude_pk is not None:
+            conflicts = conflicts.exclude(pk=exclude_pk)
+        if conflicts.exists():
+            errors["name"] = ["A campaign with this name already exists."]
     if not starts_at:
         errors["starts_at"] = ["Start date is required."]
     if not ends_at:

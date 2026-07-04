@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models.functions import Lower
 
 from looplink.campaigns.tokens import generate_campaign_token
 
@@ -39,6 +40,11 @@ class Campaign(models.Model):
     # Used as the optimistic-concurrency check for stale edits: a save is only
     # applied if the client's last-seen updated_at still matches this value.
     updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(Lower("name"), name="unique_campaign_name_ci"),
+        ]
 
     def __str__(self):
         return f"{self.name} ({self.status})"

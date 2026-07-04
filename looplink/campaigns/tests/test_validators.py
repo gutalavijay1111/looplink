@@ -8,6 +8,7 @@ from looplink.campaigns.models import OfferType
 from looplink.campaigns.validators import validate_details, validate_offer_params
 
 
+@pytest.mark.django_db()
 def test_validate_details_requires_name():
     now = timezone.now()
     with pytest.raises(CampaignValidationError) as exc_info:
@@ -16,12 +17,37 @@ def test_validate_details_requires_name():
     assert "name" in exc_info.value.errors
 
 
+@pytest.mark.django_db()
 def test_validate_details_rejects_end_before_start():
     now = timezone.now()
     with pytest.raises(CampaignValidationError) as exc_info:
         validate_details(name="Sale", starts_at=now, ends_at=now - timedelta(days=1))
 
     assert "ends_at" in exc_info.value.errors
+
+
+@pytest.mark.django_db()
+def test_validate_details_rejects_duplicate_name_case_insensitively(make_campaign):
+    make_campaign(name="Summer Sale")
+    now = timezone.now()
+
+    with pytest.raises(CampaignValidationError) as exc_info:
+        validate_details(name="summer sale", starts_at=now, ends_at=now + timedelta(days=1))
+
+    assert "name" in exc_info.value.errors
+
+
+@pytest.mark.django_db()
+def test_validate_details_allows_campaign_to_keep_its_own_name(make_campaign):
+    campaign = make_campaign(name="Summer Sale")
+    now = timezone.now()
+
+    validate_details(
+        name="Summer Sale",
+        starts_at=now,
+        ends_at=now + timedelta(days=1),
+        exclude_pk=campaign.pk,
+    )
 
 
 @pytest.mark.parametrize(

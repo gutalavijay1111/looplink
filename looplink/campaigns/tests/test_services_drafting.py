@@ -14,6 +14,13 @@ from looplink.campaigns.models import CampaignStatus, Offer, OfferType
 pytestmark = pytest.mark.django_db
 
 
+def test_create_draft_generates_unique_names_back_to_back():
+    first = services.create_draft()
+    second = services.create_draft()
+
+    assert first.name != second.name
+
+
 def test_update_details_on_draft_succeeds(make_campaign):
     campaign = make_campaign()
     now = timezone.now()
@@ -43,6 +50,39 @@ def test_update_details_rejects_invalid_window(make_campaign):
             starts_at=now,
             ends_at=now - timedelta(days=1),
         )
+
+
+def test_update_details_rejects_name_already_used_by_another_campaign(make_campaign):
+    make_campaign(name="Summer Sale")
+    campaign = make_campaign(name="Winter Sale")
+    now = timezone.now()
+
+    with pytest.raises(CampaignValidationError) as exc_info:
+        services.update_details(
+            campaign,
+            expected_updated_at=campaign.updated_at,
+            name="summer sale",
+            description="",
+            starts_at=now,
+            ends_at=now + timedelta(days=3),
+        )
+    assert "name" in exc_info.value.errors
+
+
+def test_update_details_allows_keeping_its_own_current_name(make_campaign):
+    campaign = make_campaign(name="Summer Sale")
+    now = timezone.now()
+
+    updated = services.update_details(
+        campaign,
+        expected_updated_at=campaign.updated_at,
+        name="Summer Sale",
+        description="Updated description",
+        starts_at=now,
+        ends_at=now + timedelta(days=3),
+    )
+
+    assert updated.description == "Updated description"
 
 
 def test_update_details_on_non_draft_is_locked(make_campaign):
