@@ -24,6 +24,7 @@ dependencies = [
     "termcolor",
     "gunicorn",
     "ipython", # for nicer django shell experience
+    "segno>=1.6.6",
 ]
 
 [tool.uv]
