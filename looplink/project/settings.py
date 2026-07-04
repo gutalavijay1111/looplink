@@ -40,6 +40,7 @@ DOMAIN_APPS = [
 UI_APPS = [
     "looplink.ui.base",
     "looplink.ui.builder",
+    "looplink.ui.shopper",
 ]
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + PROJECT_APPS + DOMAIN_APPS + UI_APPS
 

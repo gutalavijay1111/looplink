@@ -1,0 +1,17 @@
+{% extends "base/layout.html" %}
+{% load common_tags %}
+{# needed for js_entry #}
+{% js_entry "base/common_entry" %}
+{% block title %}
+  {% if campaign %}
+    {{ campaign.name }}
+  {% else %}
+    Campaign
+  {% endif %}
+{% endblock title %}
+{% block body_attrs %}
+  class="bg-cream min-h-screen"
+{% endblock body_attrs %}
+{% block content %}
+  <div class="max-w-md mx-auto px-4 py-10">{% include "shopper/partials/campaign_body.html" %}</div>
+{% endblock content %}
