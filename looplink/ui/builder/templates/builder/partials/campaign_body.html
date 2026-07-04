@@ -1,3 +1,4 @@
+{% load offer_tags %}
 <div id="campaign-body" class="space-y-6">
   {% if error_message %}
     <div class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 flex items-start gap-2"
@@ -51,6 +52,24 @@
       </div>
     </div>
   </div>
+  {% if distribution %}
+    <div class="card p-6">
+      <h2 class="text-base font-medium text-ink mb-4">Distribute</h2>
+      <div class="flex flex-col sm:flex-row gap-6 items-start">
+        <img src="{{ distribution.qr_data_uri }}"
+             alt="QR code linking to the shopper enrollment page"
+             class="rounded-lg border border-line shrink-0"
+             width="132"
+             height="132">
+        <div class="min-w-0">
+          <p class="text-sm text-ink-muted mb-2">Shoppers who scan this code or open this link can enroll:</p>
+          <p class="font-mono text-xs text-ink break-all bg-cream/60 border border-line rounded-md px-3 py-2">
+            {{ distribution.url }}
+          </p>
+        </div>
+      </div>
+    </div>
+  {% endif %}
   <div class="card p-6">
     <h2 class="text-base font-medium text-ink mb-4">Details</h2>
     {% if transitions.can_edit %}
@@ -144,15 +163,7 @@
               </span>
               <div>
                 <p class="text-sm font-medium text-ink">{{ offer.get_offer_type_display }}</p>
-                <p class="text-sm text-ink-muted">
-                  {% if offer.offer_type == 'PRODUCT_PERCENT_DISCOUNT' %}
-                    {{ offer.params.percent|floatformat:"-2" }}% off {{ offer.params.applies_to }}
-                  {% elif offer.offer_type == 'CART_FIXED_DISCOUNT' %}
-                    ${{ offer.params.amount_off|floatformat:"-2" }} off orders over ${{ offer.params.min_basket|floatformat:"-2" }}
-                  {% elif offer.offer_type == 'STICKER_EARN' %}
-                    Earn {{ offer.params.stickers }} sticker{{ offer.params.stickers|pluralize }} per ${{ offer.params.per_amount|floatformat:"-2" }} spent
-                  {% endif %}
-                </p>
+                <p class="text-sm text-ink-muted">{% offer_summary offer %}</p>
               </div>
             </div>
             {% if transitions.can_edit %}

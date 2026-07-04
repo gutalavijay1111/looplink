@@ -5,8 +5,9 @@ from django.utils import timezone as dj_timezone
 from django.views.generic import TemplateView
 
 from looplink.campaigns import selectors, services
+from looplink.campaigns.distribution import distribution_url, qr_code_data_uri
 from looplink.campaigns.exceptions import CampaignError, CampaignValidationError
-from looplink.campaigns.models import Campaign, OfferType
+from looplink.campaigns.models import Campaign, CampaignStatus, OfferType
 from looplink.django_ext.htmx import DjangoHtmxActionMixin, dj_hx_action
 
 OFFER_PARAM_FIELDS = {
@@ -61,12 +62,20 @@ def _default_details_values(campaign):
     }
 
 
-def _build_context(campaign, *, error_message=None, field_errors=None, details_values=None, offer_values=None):
+def _build_distribution(request, campaign):
+    if campaign.status != CampaignStatus.LIVE:
+        return None
+    url = distribution_url(request, campaign)
+    return {"url": url, "qr_data_uri": qr_code_data_uri(url)}
+
+
+def _build_context(request, campaign, *, error_message=None, field_errors=None, details_values=None, offer_values=None):
     return {
         "campaign": campaign,
         "offers": campaign.offers.all(),
         "transitions": selectors.available_transitions(campaign),
         "enrollment_count": selectors.enrollment_count(campaign),
+        "distribution": _build_distribution(request, campaign),
         "error_message": error_message,
         "field_errors": field_errors or {},
         "details_values": details_values or _default_details_values(campaign),
@@ -83,11 +92,11 @@ class CampaignDetailView(DjangoHtmxActionMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context.update(_build_context(self.get_campaign()))
+        context.update(_build_context(self.request, self.get_campaign()))
         return context
 
     def _render_body(self, request, campaign, **overrides):
-        context = _build_context(campaign, **overrides)
+        context = _build_context(request, campaign, **overrides)
         return self.render_htmx_partial_response(request, "builder/partials/campaign_body.html", context)
 
     @dj_hx_action("post")
