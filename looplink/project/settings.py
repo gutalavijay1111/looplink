@@ -34,10 +34,13 @@ THIRD_PARTY_APPS = [
 PROJECT_APPS = [
     "looplink.django_ext",
 ]
+DOMAIN_APPS = [
+    "looplink.campaigns",
+]
 UI_APPS = [
     "looplink.ui.base",
 ]
-INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + PROJECT_APPS + UI_APPS
+INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + PROJECT_APPS + DOMAIN_APPS + UI_APPS
 
 # ─── MIDDLEWARE ─────────────────────────────────────────────────────────────────
 MIDDLEWARE = [
