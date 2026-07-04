@@ -69,7 +69,9 @@ def _build_distribution(request, campaign):
     return {"url": url, "qr_data_uri": qr_code_data_uri(url)}
 
 
-def _build_context(request, campaign, *, error_message=None, field_errors=None, details_values=None, offer_values=None):
+def _build_context(
+    request, campaign, *, error_message=None, field_errors=None, details_values=None, offer_values=None, flash=None
+):
     return {
         "campaign": campaign,
         "offers": campaign.offers.all(),
@@ -80,6 +82,7 @@ def _build_context(request, campaign, *, error_message=None, field_errors=None, 
         "field_errors": field_errors or {},
         "details_values": details_values or _default_details_values(campaign),
         "offer_values": offer_values or {},
+        "flash": flash,
     }
 
 
@@ -123,7 +126,7 @@ class CampaignDetailView(DjangoHtmxActionMixin, TemplateView):
             return self._render_body(request, campaign, field_errors=exc.errors, details_values=details_values)
         except CampaignError as exc:
             return self._render_body(request, campaign, error_message=str(exc))
-        return self._render_body(request, campaign)
+        return self._render_body(request, campaign, flash="Saved")
 
     @dj_hx_action("post")
     def add_offer(self, request, *args, **kwargs):
@@ -143,7 +146,7 @@ class CampaignDetailView(DjangoHtmxActionMixin, TemplateView):
             return self._render_body(request, campaign, field_errors=exc.errors, offer_values=offer_values)
         except CampaignError as exc:
             return self._render_body(request, campaign, error_message=str(exc))
-        return self._render_body(request, campaign)
+        return self._render_body(request, campaign, flash="Offer added")
 
     @dj_hx_action("post")
     def remove_offer(self, request, *args, **kwargs):
@@ -156,7 +159,7 @@ class CampaignDetailView(DjangoHtmxActionMixin, TemplateView):
             )
         except CampaignError as exc:
             return self._render_body(request, campaign, error_message=str(exc))
-        return self._render_body(request, campaign)
+        return self._render_body(request, campaign, flash="Offer removed")
 
     @dj_hx_action("post")
     def schedule(self, request, *args, **kwargs):
