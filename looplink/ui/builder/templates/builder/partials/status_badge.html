@@ -1,0 +1,4 @@
+<span class="badge {% if status == 'draft' %}bg-stone-100 text-stone-600{% elif status == 'scheduled' %}bg-amber-100 text-amber-800{% elif status == 'live' %}bg-emerald-100 text-emerald-800{% else %}bg-stone-200 text-stone-500{% endif %}">
+  <span class="h-1.5 w-1.5 rounded-full {% if status == 'draft' %}bg-stone-400{% elif status == 'scheduled' %}bg-amber-500{% elif status == 'live' %}bg-emerald-500{% else %}bg-stone-400{% endif %}"></span>
+  {{ status_display }}
+</span>

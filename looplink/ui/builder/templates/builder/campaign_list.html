@@ -5,52 +5,84 @@
 {% block title %}
   Campaigns
 {% endblock title %}
+{% block body_attrs %}
+  class="bg-cream min-h-screen"
+{% endblock body_attrs %}
 {% block content %}
-  <div class="p-4 max-w-4xl mx-auto">
-    <div class="flex items-center justify-between mb-5">
-      <h1 class="text-2xl font-bold text-gray-900">Campaigns</h1>
+  {% include "builder/partials/nav.html" %}
+  <div class="max-w-5xl mx-auto px-4 sm:px-6 py-10">
+    <div class="flex items-center justify-between mb-8">
+      <div>
+        <h1 class="font-serif text-3xl font-medium text-ink">Campaigns</h1>
+        <p class="text-sm text-ink-muted mt-1">{{ campaign_rows|length }} campaign{{ campaign_rows|length|pluralize }}</p>
+      </div>
       <form method="post" action="{% url 'builder_campaign_list' %}">
         {% csrf_token %}
-        <button type="submit"
-                class="px-3 py-1.5 text-sm font-medium rounded bg-gray-900 text-white">New Campaign</button>
+        <button type="submit" class="btn btn-accent">
+          <svg class="h-4 w-4"
+               viewBox="0 0 20 20"
+               fill="currentColor"
+               aria-hidden="true">
+            <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
+          </svg>
+          New Campaign
+        </button>
       </form>
     </div>
     {% if campaign_rows %}
-      <table class="w-full text-left border-collapse">
-        <thead>
-          <tr class="border-b border-gray-200 text-sm text-gray-500">
-            <th class="py-2">Name</th>
-            <th class="py-2">Status</th>
-            <th class="py-2">Window</th>
-            <th class="py-2">Offers</th>
-            <th class="py-2"></th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for row in campaign_rows %}
-            <tr class="border-b border-gray-100">
-              <td class="py-3 font-medium text-gray-900">{{ row.campaign.name }}</td>
-              <td class="py-3">
-                <span class="inline-block rounded-full px-2 py-0.5 text-xs font-semibold {% if row.campaign.status == 'draft' %}bg-gray-100 text-gray-700 {% elif row.campaign.status == 'scheduled' %}bg-amber-100 text-amber-800 {% elif row.campaign.status == 'live' %}bg-green-100 text-green-800 {% else %}bg-slate-200 text-slate-700{% endif %}">
-                  {{ row.campaign.get_status_display }}
-                </span>
-              </td>
-              <td class="py-3 text-sm text-gray-600">
-                {{ row.campaign.starts_at|date:"M j, Y" }} – {{ row.campaign.ends_at|date:"M j, Y" }}
-              </td>
-              <td class="py-3 text-sm text-gray-600">{{ row.offer_count }}</td>
-              <td class="py-3 text-right">
-                <a href="{% url 'builder_campaign_detail' row.campaign.pk %}"
-                   class="text-blue-600 font-medium">View</a>
-              </td>
+      <div class="card overflow-hidden">
+        <table class="w-full text-left">
+          <thead class="border-b border-line">
+            <tr class="text-xs font-medium text-ink-muted uppercase tracking-wide">
+              <th class="py-3 px-4">Name</th>
+              <th class="py-3 px-4">Status</th>
+              <th class="py-3 px-4">Window</th>
+              <th class="py-3 px-4">Offers</th>
+              <th class="py-3 px-4">
+                <span class="sr-only">View</span>
+              </th>
             </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+          </thead>
+          <tbody class="divide-y divide-line">
+            {% for row in campaign_rows %}
+              <tr class="hover:bg-cream/60 transition-colors">
+                <td class="py-3.5 px-4">
+                  <a href="{% url 'builder_campaign_detail' row.campaign.pk %}"
+                     class="font-medium text-ink hover:text-accent-600">{{ row.campaign.name }}</a>
+                </td>
+                <td class="py-3.5 px-4">
+                  {% include "builder/partials/status_badge.html" with status=row.campaign.status status_display=row.campaign.get_status_display %}
+                </td>
+                <td class="py-3.5 px-4 text-sm text-ink-muted">
+                  {{ row.campaign.starts_at|date:"M j, Y" }} – {{ row.campaign.ends_at|date:"M j, Y" }}
+                </td>
+                <td class="py-3.5 px-4 text-sm text-ink-muted">{{ row.offer_count }}</td>
+                <td class="py-3.5 px-4 text-right">
+                  <a href="{% url 'builder_campaign_detail' row.campaign.pk %}"
+                     class="text-sm font-medium text-accent-600 hover:text-accent-700">View →</a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     {% else %}
-      <div class="text-center border border-dashed border-gray-300 rounded-lg py-16">
-        <p class="text-gray-500">No campaigns yet.</p>
-        <p class="text-sm text-gray-400 mt-1">Create your first campaign to get started.</p>
+      <div class="card border-dashed flex flex-col items-center text-center py-16 px-4">
+        <div class="h-12 w-12 rounded-full bg-accent-50 flex items-center justify-center mb-4 text-accent-600">
+          <svg class="h-6 w-6"
+               viewBox="0 0 24 24"
+               fill="none"
+               stroke="currentColor"
+               aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3.75 9.75l1.5-4.5A2.25 2.25 0 017.393 3.75h9.214a2.25 2.25 0 012.143 1.5l1.5 4.5m-16.5 0v8.25A2.25 2.25 0 006 20.25h12a2.25 2.25 0 002.25-2.25V9.75m-16.5 0h16.5M9 13.5h6" />
+          </svg>
+        </div>
+        <h2 class="font-serif text-lg font-medium text-ink">No campaigns yet</h2>
+        <p class="text-sm text-ink-muted mt-1 max-w-sm">Create your first campaign to start bundling offers for shoppers.</p>
+        <form method="post" action="{% url 'builder_campaign_list' %}" class="mt-6">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-accent">New Campaign</button>
+        </form>
       </div>
     {% endif %}
   </div>

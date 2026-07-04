@@ -1,242 +1,271 @@
-<div id="campaign-body">
+<div id="campaign-body" class="space-y-6">
   {% if error_message %}
-    <div class="mb-4 rounded border border-red-300 bg-red-50 text-red-700 text-sm p-3"
-         role="alert">{{ error_message }}</div>
+    <div class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 flex items-start gap-2"
+         role="alert">
+      <svg class="h-5 w-5 text-red-500 shrink-0 mt-0.5"
+           viewBox="0 0 20 20"
+           fill="currentColor"
+           aria-hidden="true">
+        <path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
+      </svg>
+      <p class="text-sm text-red-700">{{ error_message }}</p>
+    </div>
   {% endif %}
-  <div class="flex items-center justify-between mb-6">
-    <span class="inline-block rounded-full px-3 py-1 text-xs font-semibold {% if campaign.status == 'draft' %}bg-gray-100 text-gray-700 {% elif campaign.status == 'scheduled' %}bg-amber-100 text-amber-800 {% elif campaign.status == 'live' %}bg-green-100 text-green-800 {% else %}bg-slate-200 text-slate-700{% endif %}">
-      {{ campaign.get_status_display }}
-    </span>
-    <div class="flex gap-2">
-      {% if transitions.can_schedule %}
-        <button type="button"
-                dj-hx-action="schedule"
-                hx-post="{{ request.path }}"
-                hx-target="#campaign-body"
-                hx-swap="outerHTML"
-                hx-vals='{"expected_updated_at": "{{ campaign.updated_at.isoformat }}"}'
-                hx-confirm="Schedule this campaign?"
-                class="px-3 py-1.5 text-sm font-medium rounded border border-gray-300 text-gray-700">Schedule</button>
-      {% endif %}
-      {% if transitions.can_launch %}
-        <button type="button"
-                dj-hx-action="launch"
-                hx-post="{{ request.path }}"
-                hx-target="#campaign-body"
-                hx-swap="outerHTML"
-                hx-vals='{"expected_updated_at": "{{ campaign.updated_at.isoformat }}"}'
-                hx-confirm="Launch this campaign now? Enrollment opens immediately."
-                class="px-3 py-1.5 text-sm font-medium rounded bg-blue-600 text-white">Launch</button>
-      {% endif %}
-      {% if transitions.can_end %}
-        <button type="button"
-                dj-hx-action="end"
-                hx-post="{{ request.path }}"
-                hx-target="#campaign-body"
-                hx-swap="outerHTML"
-                hx-vals='{"expected_updated_at": "{{ campaign.updated_at.isoformat }}"}'
-                hx-confirm="End this campaign? This closes enrollment and can't be undone."
-                class="px-3 py-1.5 text-sm font-medium rounded bg-red-600 text-white">End</button>
-      {% endif %}
+  <div class="card p-6">
+    <div class="flex items-start justify-between gap-4 flex-wrap">
+      <div class="flex items-center gap-3">
+        <h1 class="text-xl font-medium text-ink">{{ campaign.name }}</h1>
+        {% include "builder/partials/status_badge.html" with status=campaign.status status_display=campaign.get_status_display %}
+      </div>
+      <div class="flex gap-2">
+        {% if transitions.can_schedule %}
+          <button type="button"
+                  dj-hx-action="schedule"
+                  hx-post="{{ request.path }}"
+                  hx-target="#campaign-body"
+                  hx-swap="outerHTML"
+                  hx-vals='{"expected_updated_at": "{{ campaign.updated_at.isoformat }}"}'
+                  hx-confirm="Schedule this campaign?"
+                  class="btn btn-outline">Schedule</button>
+        {% endif %}
+        {% if transitions.can_launch %}
+          <button type="button"
+                  dj-hx-action="launch"
+                  hx-post="{{ request.path }}"
+                  hx-target="#campaign-body"
+                  hx-swap="outerHTML"
+                  hx-vals='{"expected_updated_at": "{{ campaign.updated_at.isoformat }}"}'
+                  hx-confirm="Launch this campaign now? Enrollment opens immediately."
+                  class="btn btn-accent">Launch</button>
+        {% endif %}
+        {% if transitions.can_end %}
+          <button type="button"
+                  dj-hx-action="end"
+                  hx-post="{{ request.path }}"
+                  hx-target="#campaign-body"
+                  hx-swap="outerHTML"
+                  hx-vals='{"expected_updated_at": "{{ campaign.updated_at.isoformat }}"}'
+                  hx-confirm="End this campaign? This closes enrollment and can't be undone."
+                  class="btn btn-destructive">End</button>
+        {% endif %}
+      </div>
     </div>
   </div>
-  {% if transitions.can_edit %}
-    <form dj-hx-action="save_details"
-          hx-post="{{ request.path }}"
-          hx-target="#campaign-body"
-          hx-swap="outerHTML"
-          class="space-y-3 mb-8">
-      <input type="hidden"
-             name="expected_updated_at"
-             value="{{ campaign.updated_at.isoformat }}">
-      <div>
-        <label class="block text-sm font-medium text-gray-700" for="id_name">Name</label>
-        <input id="id_name"
-               type="text"
-               name="name"
-               value="{{ details_values.name }}"
-               class="mt-1 w-full rounded border border-gray-300 px-3 py-1.5 text-sm">
-        {% if field_errors.name %}<p class="text-red-600 text-xs mt-1">{{ field_errors.name|join:" " }}</p>{% endif %}
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-gray-700" for="id_description">Description</label>
-        <textarea id="id_description"
-                  name="description"
-                  rows="2"
-                  class="mt-1 w-full rounded border border-gray-300 px-3 py-1.5 text-sm">{{ details_values.description }}</textarea>
-      </div>
-      <div class="grid grid-cols-2 gap-4">
+  <div class="card p-6">
+    <h2 class="text-base font-medium text-ink mb-4">Details</h2>
+    {% if transitions.can_edit %}
+      <form dj-hx-action="save_details"
+            hx-post="{{ request.path }}"
+            hx-target="#campaign-body"
+            hx-swap="outerHTML"
+            class="space-y-4">
+        <input type="hidden"
+               name="expected_updated_at"
+               value="{{ campaign.updated_at.isoformat }}">
         <div>
-          <label class="block text-sm font-medium text-gray-700" for="id_starts_at">Starts (UTC)</label>
-          <input id="id_starts_at"
-                 type="datetime-local"
-                 name="starts_at"
-                 value="{{ details_values.starts_at }}"
-                 class="mt-1 w-full rounded border border-gray-300 px-3 py-1.5 text-sm">
-          {% if field_errors.starts_at %}
-            <p class="text-red-600 text-xs mt-1">{{ field_errors.starts_at|join:" " }}</p>
-          {% endif %}
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700" for="id_ends_at">Ends (UTC)</label>
-          <input id="id_ends_at"
-                 type="datetime-local"
-                 name="ends_at"
-                 value="{{ details_values.ends_at }}"
-                 class="mt-1 w-full rounded border border-gray-300 px-3 py-1.5 text-sm">
-          {% if field_errors.ends_at %}<p class="text-red-600 text-xs mt-1">{{ field_errors.ends_at|join:" " }}</p>{% endif %}
-        </div>
-      </div>
-      <button type="submit"
-              class="px-3 py-1.5 text-sm font-medium rounded bg-gray-900 text-white">Save details</button>
-    </form>
-  {% else %}
-    <div class="mb-8">
-      <h1 class="text-xl font-bold text-gray-900">{{ campaign.name }}</h1>
-      <p class="text-gray-600 mt-1">{{ campaign.description|default:"No description." }}</p>
-      <dl class="grid grid-cols-3 gap-4 text-sm mt-4">
-        <div>
-          <dt class="text-gray-500">Starts</dt>
-          <dd class="text-gray-900">
-            {{ campaign.starts_at|date:"M j, Y H:i" }} UTC
-          </dd>
-        </div>
-        <div>
-          <dt class="text-gray-500">Ends</dt>
-          <dd class="text-gray-900">
-            {{ campaign.ends_at|date:"M j, Y H:i" }} UTC
-          </dd>
-        </div>
-        <div>
-          <dt class="text-gray-500">Enrollments</dt>
-          <dd class="text-gray-900">
-            {{ enrollment_count }}
-          </dd>
-        </div>
-      </dl>
-    </div>
-  {% endif %}
-  <h2 class="text-lg font-semibold text-gray-900 mb-2">Offers</h2>
-  {% if field_errors.offers %}<p class="text-red-600 text-xs mb-2">{{ field_errors.offers|join:" " }}</p>{% endif %}
-  {% if offers %}
-    <ul class="space-y-2 mb-6">
-      {% for offer in offers %}
-        <li class="flex items-center justify-between border border-gray-200 rounded p-3 text-sm">
-          <span>
-            <span class="font-medium">{{ offer.get_offer_type_display }}</span>
-            <span class="text-gray-500">— {{ offer.params }}</span>
-          </span>
-          {% if transitions.can_edit %}
-            <button type="button"
-                    dj-hx-action="remove_offer"
-                    hx-post="{{ request.path }}"
-                    hx-target="#campaign-body"
-                    hx-swap="outerHTML"
-                    hx-vals='{"offer_id": {{ offer.pk }}, "expected_updated_at": "{{ campaign.updated_at.isoformat }}"}'
-                    class="text-red-600 text-xs font-medium">Remove</button>
-          {% endif %}
-        </li>
-      {% endfor %}
-    </ul>
-  {% else %}
-    <p class="text-gray-400 text-sm mb-6">No offers attached yet.</p>
-  {% endif %}
-  {% if transitions.can_edit %}
-    <form dj-hx-action="add_offer"
-          hx-post="{{ request.path }}"
-          hx-target="#campaign-body"
-          hx-swap="outerHTML"
-          class="border border-gray-200 rounded p-4"
-          x-data="{ offerType: '{{ offer_values.offer_type|default:'PRODUCT_PERCENT_DISCOUNT' }}' }">
-      <input type="hidden"
-             name="expected_updated_at"
-             value="{{ campaign.updated_at.isoformat }}">
-      <label class="block text-sm font-medium text-gray-700" for="id_offer_type">Offer type</label>
-      <select id="id_offer_type"
-              name="offer_type"
-              x-model="offerType"
-              class="mt-1 mb-3 w-full rounded border border-gray-300 px-3 py-1.5 text-sm">
-        <option value="PRODUCT_PERCENT_DISCOUNT">Product percent discount</option>
-        <option value="CART_FIXED_DISCOUNT">Cart fixed discount</option>
-        <option value="STICKER_EARN">Sticker earn</option>
-      </select>
-      <div x-show="offerType === 'PRODUCT_PERCENT_DISCOUNT'"
-           class="grid grid-cols-2 gap-3 mb-3">
-        <div>
-          <label class="block text-xs text-gray-500" for="id_percent">Percent off</label>
-          <input id="id_percent"
-                 type="number"
-                 step="0.01"
-                 name="percent"
-                 value="{{ offer_values.percent }}"
-                 class="mt-1 w-full rounded border border-gray-300 px-3 py-1.5 text-sm">
-          {% if field_errors.percent %}<p class="text-red-600 text-xs mt-1">{{ field_errors.percent|join:" " }}</p>{% endif %}
-        </div>
-        <div>
-          <label class="block text-xs text-gray-500" for="id_applies_to">Applies to</label>
-          <input id="id_applies_to"
+          <label class="field-label" for="id_name">Name</label>
+          <input id="id_name"
                  type="text"
-                 name="applies_to"
-                 value="{{ offer_values.applies_to }}"
-                 class="mt-1 w-full rounded border border-gray-300 px-3 py-1.5 text-sm">
-          {% if field_errors.applies_to %}
-            <p class="text-red-600 text-xs mt-1">{{ field_errors.applies_to|join:" " }}</p>
-          {% endif %}
+                 name="name"
+                 value="{{ details_values.name }}"
+                 class="field-input">
+          {% if field_errors.name %}<p class="field-error">{{ field_errors.name|join:" " }}</p>{% endif %}
         </div>
+        <div>
+          <label class="field-label" for="id_description">Description</label>
+          <textarea id="id_description" name="description" rows="2" class="field-input">{{ details_values.description }}</textarea>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="field-label" for="id_starts_at">Starts (UTC)</label>
+            <input id="id_starts_at"
+                   type="datetime-local"
+                   name="starts_at"
+                   value="{{ details_values.starts_at }}"
+                   class="field-input">
+            {% if field_errors.starts_at %}<p class="field-error">{{ field_errors.starts_at|join:" " }}</p>{% endif %}
+          </div>
+          <div>
+            <label class="field-label" for="id_ends_at">Ends (UTC)</label>
+            <input id="id_ends_at"
+                   type="datetime-local"
+                   name="ends_at"
+                   value="{{ details_values.ends_at }}"
+                   class="field-input">
+            {% if field_errors.ends_at %}<p class="field-error">{{ field_errors.ends_at|join:" " }}</p>{% endif %}
+          </div>
+        </div>
+        <div class="pt-1">
+          <button type="submit" class="btn btn-accent">Save details</button>
+        </div>
+      </form>
+    {% else %}
+      <div class="space-y-4">
+        {% if campaign.description %}<p class="text-sm text-ink/80">{{ campaign.description }}</p>{% endif %}
+        <dl class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm border-t border-line pt-4">
+          <div>
+            <dt class="text-ink-muted">Starts</dt>
+            <dd class="text-ink mt-0.5 font-mono text-xs">
+              {{ campaign.starts_at|date:"M j, Y H:i" }} UTC
+            </dd>
+          </div>
+          <div>
+            <dt class="text-ink-muted">Ends</dt>
+            <dd class="text-ink mt-0.5 font-mono text-xs">
+              {{ campaign.ends_at|date:"M j, Y H:i" }} UTC
+            </dd>
+          </div>
+          <div>
+            <dt class="text-ink-muted">Enrollments</dt>
+            <dd class="text-ink mt-0.5">
+              {{ enrollment_count }}
+            </dd>
+          </div>
+        </dl>
       </div>
-      <div x-show="offerType === 'CART_FIXED_DISCOUNT'"
-           class="grid grid-cols-2 gap-3 mb-3">
-        <div>
-          <label class="block text-xs text-gray-500" for="id_amount_off">Amount off</label>
-          <input id="id_amount_off"
-                 type="number"
-                 step="0.01"
-                 name="amount_off"
-                 value="{{ offer_values.amount_off }}"
-                 class="mt-1 w-full rounded border border-gray-300 px-3 py-1.5 text-sm">
-          {% if field_errors.amount_off %}
-            <p class="text-red-600 text-xs mt-1">{{ field_errors.amount_off|join:" " }}</p>
-          {% endif %}
+    {% endif %}
+  </div>
+  <div class="card p-6">
+    <h2 class="text-base font-medium text-ink mb-4">Offers</h2>
+    {% if field_errors.offers %}<p class="field-error mb-3">{{ field_errors.offers|join:" " }}</p>{% endif %}
+    {% if offers %}
+      <ul class="space-y-2 mb-6">
+        {% for offer in offers %}
+          <li class="flex items-center justify-between gap-4 rounded-lg border border-line px-4 py-3">
+            <div class="flex items-center gap-3">
+              <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent-50 text-sm font-semibold text-accent-600">
+                {% if offer.offer_type == 'PRODUCT_PERCENT_DISCOUNT' %}
+                  %
+                {% elif offer.offer_type == 'CART_FIXED_DISCOUNT' %}
+                  $
+                {% else %}
+                  ★
+                {% endif %}
+              </span>
+              <div>
+                <p class="text-sm font-medium text-ink">{{ offer.get_offer_type_display }}</p>
+                <p class="text-sm text-ink-muted">
+                  {% if offer.offer_type == 'PRODUCT_PERCENT_DISCOUNT' %}
+                    {{ offer.params.percent|floatformat:"-2" }}% off {{ offer.params.applies_to }}
+                  {% elif offer.offer_type == 'CART_FIXED_DISCOUNT' %}
+                    ${{ offer.params.amount_off|floatformat:"-2" }} off orders over ${{ offer.params.min_basket|floatformat:"-2" }}
+                  {% elif offer.offer_type == 'STICKER_EARN' %}
+                    Earn {{ offer.params.stickers }} sticker{{ offer.params.stickers|pluralize }} per ${{ offer.params.per_amount|floatformat:"-2" }} spent
+                  {% endif %}
+                </p>
+              </div>
+            </div>
+            {% if transitions.can_edit %}
+              <button type="button"
+                      dj-hx-action="remove_offer"
+                      hx-post="{{ request.path }}"
+                      hx-target="#campaign-body"
+                      hx-swap="outerHTML"
+                      hx-vals='{"offer_id": {{ offer.pk }}, "expected_updated_at": "{{ campaign.updated_at.isoformat }}"}'
+                      class="btn-ghost-destructive shrink-0">
+                <svg class="h-4 w-4"
+                     viewBox="0 0 20 20"
+                     fill="currentColor"
+                     aria-hidden="true">
+                  <path fill-rule="evenodd" d="M8.75 1A2.75 2.75 0 006 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 10.23 1.482l.149-.022.841 10.518A2.75 2.75 0 007.596 19h4.807a2.75 2.75 0 002.742-2.53l.841-10.52.149.023a.75.75 0 00.23-1.482 41.03 41.03 0 00-2.365-.298V3.75A2.75 2.75 0 0011.25 1h-2.5zM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4zM8.58 7.72a.75.75 0 00-1.5.06l.3 7.5a.75.75 0 101.5-.06l-.3-7.5zm4.34.06a.75.75 0 10-1.5-.06l-.3 7.5a.75.75 0 101.5.06l.3-7.5z" clip-rule="evenodd" />
+                </svg>
+                Remove
+              </button>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="text-sm text-ink-muted mb-6">No offers attached yet.</p>
+    {% endif %}
+    {% if transitions.can_edit %}
+      <form dj-hx-action="add_offer"
+            hx-post="{{ request.path }}"
+            hx-target="#campaign-body"
+            hx-swap="outerHTML"
+            class="border border-line rounded-lg p-4 bg-cream/60"
+            x-data="{ offerType: '{{ offer_values.offer_type|default:'PRODUCT_PERCENT_DISCOUNT' }}' }">
+        <input type="hidden"
+               name="expected_updated_at"
+               value="{{ campaign.updated_at.isoformat }}">
+        <label class="field-label" for="id_offer_type">Offer type</label>
+        <select id="id_offer_type"
+                name="offer_type"
+                x-model="offerType"
+                class="field-input mb-3">
+          <option value="PRODUCT_PERCENT_DISCOUNT">Product percent discount</option>
+          <option value="CART_FIXED_DISCOUNT">Cart fixed discount</option>
+          <option value="STICKER_EARN">Sticker earn</option>
+        </select>
+        <div x-show="offerType === 'PRODUCT_PERCENT_DISCOUNT'"
+             class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+          <div>
+            <label class="field-label" for="id_percent">Percent off</label>
+            <input id="id_percent"
+                   type="number"
+                   step="0.01"
+                   name="percent"
+                   value="{{ offer_values.percent }}"
+                   class="field-input">
+            {% if field_errors.percent %}<p class="field-error">{{ field_errors.percent|join:" " }}</p>{% endif %}
+          </div>
+          <div>
+            <label class="field-label" for="id_applies_to">Applies to</label>
+            <input id="id_applies_to"
+                   type="text"
+                   name="applies_to"
+                   value="{{ offer_values.applies_to }}"
+                   class="field-input">
+            {% if field_errors.applies_to %}<p class="field-error">{{ field_errors.applies_to|join:" " }}</p>{% endif %}
+          </div>
         </div>
-        <div>
-          <label class="block text-xs text-gray-500" for="id_min_basket">Minimum basket</label>
-          <input id="id_min_basket"
-                 type="number"
-                 step="0.01"
-                 name="min_basket"
-                 value="{{ offer_values.min_basket }}"
-                 class="mt-1 w-full rounded border border-gray-300 px-3 py-1.5 text-sm">
-          {% if field_errors.min_basket %}
-            <p class="text-red-600 text-xs mt-1">{{ field_errors.min_basket|join:" " }}</p>
-          {% endif %}
+        <div x-show="offerType === 'CART_FIXED_DISCOUNT'"
+             class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+          <div>
+            <label class="field-label" for="id_amount_off">Amount off</label>
+            <input id="id_amount_off"
+                   type="number"
+                   step="0.01"
+                   name="amount_off"
+                   value="{{ offer_values.amount_off }}"
+                   class="field-input">
+            {% if field_errors.amount_off %}<p class="field-error">{{ field_errors.amount_off|join:" " }}</p>{% endif %}
+          </div>
+          <div>
+            <label class="field-label" for="id_min_basket">Minimum basket</label>
+            <input id="id_min_basket"
+                   type="number"
+                   step="0.01"
+                   name="min_basket"
+                   value="{{ offer_values.min_basket }}"
+                   class="field-input">
+            {% if field_errors.min_basket %}<p class="field-error">{{ field_errors.min_basket|join:" " }}</p>{% endif %}
+          </div>
         </div>
-      </div>
-      <div x-show="offerType === 'STICKER_EARN'"
-           class="grid grid-cols-2 gap-3 mb-3">
-        <div>
-          <label class="block text-xs text-gray-500" for="id_stickers">Stickers earned</label>
-          <input id="id_stickers"
-                 type="number"
-                 name="stickers"
-                 value="{{ offer_values.stickers }}"
-                 class="mt-1 w-full rounded border border-gray-300 px-3 py-1.5 text-sm">
-          {% if field_errors.stickers %}<p class="text-red-600 text-xs mt-1">{{ field_errors.stickers|join:" " }}</p>{% endif %}
+        <div x-show="offerType === 'STICKER_EARN'"
+             class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+          <div>
+            <label class="field-label" for="id_stickers">Stickers earned</label>
+            <input id="id_stickers"
+                   type="number"
+                   name="stickers"
+                   value="{{ offer_values.stickers }}"
+                   class="field-input">
+            {% if field_errors.stickers %}<p class="field-error">{{ field_errors.stickers|join:" " }}</p>{% endif %}
+          </div>
+          <div>
+            <label class="field-label" for="id_per_amount">Per amount spent</label>
+            <input id="id_per_amount"
+                   type="number"
+                   step="0.01"
+                   name="per_amount"
+                   value="{{ offer_values.per_amount }}"
+                   class="field-input">
+            {% if field_errors.per_amount %}<p class="field-error">{{ field_errors.per_amount|join:" " }}</p>{% endif %}
+          </div>
         </div>
-        <div>
-          <label class="block text-xs text-gray-500" for="id_per_amount">Per amount spent</label>
-          <input id="id_per_amount"
-                 type="number"
-                 step="0.01"
-                 name="per_amount"
-                 value="{{ offer_values.per_amount }}"
-                 class="mt-1 w-full rounded border border-gray-300 px-3 py-1.5 text-sm">
-          {% if field_errors.per_amount %}
-            <p class="text-red-600 text-xs mt-1">{{ field_errors.per_amount|join:" " }}</p>
-          {% endif %}
-        </div>
-      </div>
-      <button type="submit"
-              class="px-3 py-1.5 text-sm font-medium rounded border border-gray-300 text-gray-700">Add offer</button>
-    </form>
-  {% endif %}
+        <button type="submit" class="btn btn-outline">Add offer</button>
+      </form>
+    {% endif %}
+  </div>
 </div>

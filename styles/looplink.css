@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
 @import "tailwindcss";
 
@@ -31,11 +31,86 @@
 }
 
 @theme {
-  --font-display: "Outfit", "sans-serif"; 
-  --font-sans: "Outfit", "sans-serif"; 
+  --font-sans: "Inter", ui-sans-serif, sans-serif;
+  --font-serif: "Fraunces", ui-serif, serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  /* Warm editorial neutrals */
+  --color-cream: #f6f3ea;
+  --color-paper: #fffdf8;
+  --color-ink: #2a2620;
+  --color-ink-muted: #8a8375;
+  --color-line: #e7e1d2;
+
+  /* Single accent: burnt terracotta */
+  --color-accent-50: #fbf1ec;
+  --color-accent-100: #f6dfd3;
+  --color-accent-200: #edbea6;
+  --color-accent-300: #e19c7a;
+  --color-accent-400: #d17952;
+  --color-accent-500: #bc5b39;
+  --color-accent-600: #a34a2c;
+  --color-accent-700: #833b23;
+  --color-accent-800: #632c1a;
+  --color-accent-900: #431d11;
 }
 
 /* for hiding elements until Alpine.js has fully loaded */
 [x-cloak] {
   display: none !important;
+}
+
+@layer base {
+  body {
+    @apply bg-cream text-ink font-sans antialiased;
+  }
+  h1,
+  h2,
+  h3 {
+    @apply font-serif;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-paper rounded-xl border border-line shadow-sm;
+  }
+
+  /* Combine with a variant in HTML, e.g. class="btn btn-accent" — Tailwind v4's
+     @apply can't compose one custom component class from another. */
+  .btn {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-md px-3.5 py-2 text-sm font-medium
+      transition-colors duration-150 disabled:opacity-50 disabled:pointer-events-none
+      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-cream;
+  }
+  .btn-accent {
+    @apply bg-accent-500 text-white hover:bg-accent-600 focus-visible:ring-accent-500;
+  }
+  .btn-default {
+    @apply bg-ink text-paper hover:bg-ink/90 focus-visible:ring-ink;
+  }
+  .btn-outline {
+    @apply bg-paper text-ink border border-line hover:bg-cream focus-visible:ring-accent-500;
+  }
+  .btn-destructive {
+    @apply bg-red-600 text-white hover:bg-red-500 focus-visible:ring-red-500;
+  }
+  .btn-ghost-destructive {
+    @apply inline-flex items-center gap-1 text-xs font-medium text-red-600 hover:text-red-700;
+  }
+
+  .field-label {
+    @apply text-ink mb-1 block text-sm font-medium;
+  }
+  .field-input {
+    @apply block w-full rounded-md border border-line bg-paper px-3 py-1.5 text-sm text-ink shadow-sm
+      placeholder:text-ink-muted focus:border-accent-500 focus:outline-none focus:ring-2 focus:ring-accent-500/20;
+  }
+  .field-error {
+    @apply mt-1 text-xs text-red-600;
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium;
+  }
 }
