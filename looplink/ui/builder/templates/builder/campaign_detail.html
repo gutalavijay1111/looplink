@@ -1,0 +1,14 @@
+{% extends "base/layout.html" %}
+{% load common_tags %}
+{# needed for js_entry #}
+{% js_entry "base/common_entry" %}
+{% block title %}
+  {{ campaign.name }}
+{% endblock title %}
+{% block content %}
+  <div class="p-4 max-w-3xl mx-auto">
+    <a href="{% url 'builder_campaign_list' %}"
+       class="text-sm text-blue-600">← All campaigns</a>
+    <div class="mt-3">{% include "builder/partials/campaign_body.html" %}</div>
+  </div>
+{% endblock content %}

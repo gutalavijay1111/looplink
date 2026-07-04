@@ -1,0 +1,57 @@
+{% extends "base/layout.html" %}
+{% load common_tags %}
+{# needed for js_entry #}
+{% js_entry "base/common_entry" %}
+{% block title %}
+  Campaigns
+{% endblock title %}
+{% block content %}
+  <div class="p-4 max-w-4xl mx-auto">
+    <div class="flex items-center justify-between mb-5">
+      <h1 class="text-2xl font-bold text-gray-900">Campaigns</h1>
+      <form method="post" action="{% url 'builder_campaign_list' %}">
+        {% csrf_token %}
+        <button type="submit"
+                class="px-3 py-1.5 text-sm font-medium rounded bg-gray-900 text-white">New Campaign</button>
+      </form>
+    </div>
+    {% if campaign_rows %}
+      <table class="w-full text-left border-collapse">
+        <thead>
+          <tr class="border-b border-gray-200 text-sm text-gray-500">
+            <th class="py-2">Name</th>
+            <th class="py-2">Status</th>
+            <th class="py-2">Window</th>
+            <th class="py-2">Offers</th>
+            <th class="py-2"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in campaign_rows %}
+            <tr class="border-b border-gray-100">
+              <td class="py-3 font-medium text-gray-900">{{ row.campaign.name }}</td>
+              <td class="py-3">
+                <span class="inline-block rounded-full px-2 py-0.5 text-xs font-semibold {% if row.campaign.status == 'draft' %}bg-gray-100 text-gray-700 {% elif row.campaign.status == 'scheduled' %}bg-amber-100 text-amber-800 {% elif row.campaign.status == 'live' %}bg-green-100 text-green-800 {% else %}bg-slate-200 text-slate-700{% endif %}">
+                  {{ row.campaign.get_status_display }}
+                </span>
+              </td>
+              <td class="py-3 text-sm text-gray-600">
+                {{ row.campaign.starts_at|date:"M j, Y" }} – {{ row.campaign.ends_at|date:"M j, Y" }}
+              </td>
+              <td class="py-3 text-sm text-gray-600">{{ row.offer_count }}</td>
+              <td class="py-3 text-right">
+                <a href="{% url 'builder_campaign_detail' row.campaign.pk %}"
+                   class="text-blue-600 font-medium">View</a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <div class="text-center border border-dashed border-gray-300 rounded-lg py-16">
+        <p class="text-gray-500">No campaigns yet.</p>
+        <p class="text-sm text-gray-400 mt-1">Create your first campaign to get started.</p>
+      </div>
+    {% endif %}
+  </div>
+{% endblock content %}
