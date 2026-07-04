@@ -63,3 +63,7 @@ def find_enrollment(campaign, normalized_identity):
 
 def enrollment_count(campaign):
     return campaign.enrollments.count()
+
+
+def recent_enrollments(campaign, limit=10):
+    return campaign.enrollments.order_by("-created_at")[:limit]

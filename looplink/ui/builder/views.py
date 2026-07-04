@@ -4,7 +4,7 @@ from django.shortcuts import get_object_or_404, redirect
 from django.utils import timezone as dj_timezone
 from django.views.generic import TemplateView
 
-from looplink.campaigns import selectors, services
+from looplink.campaigns import activity_cache, selectors, services
 from looplink.campaigns.distribution import distribution_url, qr_code_data_uri
 from looplink.campaigns.exceptions import CampaignError, CampaignValidationError
 from looplink.campaigns.models import Campaign, CampaignStatus, OfferType
@@ -69,6 +69,16 @@ def _build_distribution(request, campaign):
     return {"url": url, "qr_data_uri": qr_code_data_uri(url)}
 
 
+def _build_live_activity(campaign, *, polling=False):
+    if campaign.status != CampaignStatus.LIVE:
+        return None
+    return {
+        "polling": polling,
+        "count": activity_cache.get_enrollment_count(campaign),
+        "recent": activity_cache.get_recent_enrollments(campaign),
+    }
+
+
 def _build_context(
     request, campaign, *, error_message=None, field_errors=None, details_values=None, offer_values=None, flash=None
 ):
@@ -78,6 +88,9 @@ def _build_context(
         "transitions": selectors.available_transitions(campaign),
         "enrollment_count": selectors.enrollment_count(campaign),
         "distribution": _build_distribution(request, campaign),
+        # Page load always starts paused: nothing polls until a viewer opts in
+        # by clicking "View live", so an idle open tab costs nothing.
+        "live_activity": _build_live_activity(campaign, polling=False),
         "error_message": error_message,
         "field_errors": field_errors or {},
         "details_values": details_values or _default_details_values(campaign),
@@ -101,6 +114,26 @@ class CampaignDetailView(DjangoHtmxActionMixin, TemplateView):
     def _render_body(self, request, campaign, **overrides):
         context = _build_context(request, campaign, **overrides)
         return self.render_htmx_partial_response(request, "builder/partials/campaign_body.html", context)
+
+    def _render_activity(self, request, campaign, *, polling):
+        return self.render_htmx_partial_response(
+            request,
+            "builder/partials/live_activity.html",
+            {"campaign": campaign, "live_activity": _build_live_activity(campaign, polling=polling)},
+        )
+
+    @dj_hx_action("get")
+    def activity(self, request, *args, **kwargs):
+        """
+        Starts live view (button click) and keeps it going (each 5s poll hits
+        this same action) — the returned fragment re-declares its own polling
+        trigger, so it keeps ticking until activity_stop renders it away.
+        """
+        return self._render_activity(request, self.get_campaign(), polling=True)
+
+    @dj_hx_action("get")
+    def activity_stop(self, request, *args, **kwargs):
+        return self._render_activity(request, self.get_campaign(), polling=False)
 
     @dj_hx_action("post")
     def save_details(self, request, *args, **kwargs):

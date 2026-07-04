@@ -1,0 +1,46 @@
+<div id="live-activity"
+     {% if live_activity.polling %} hx-get="{{ request.path }}" dj-hx-action="activity" hx-trigger="every 5s" hx-swap="outerHTML" hx-target="this" {% endif %}>
+  {% if live_activity %}
+    <div class="flex items-center justify-between mb-3">
+      <div class="flex items-center gap-2">
+        <h2 class="text-base font-medium text-ink">Live activity</h2>
+        {% if live_activity.polling %}
+          <span class="flex h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"
+                aria-hidden="true"></span>
+        {% endif %}
+      </div>
+      <div class="flex items-center gap-3">
+        <span class="text-sm text-ink-muted">{{ live_activity.count }} enrolled</span>
+        {% if live_activity.polling %}
+          <button type="button"
+                  dj-hx-action="activity_stop"
+                  hx-get="{{ request.path }}"
+                  hx-target="#live-activity"
+                  hx-swap="outerHTML"
+                  class="text-xs font-medium text-ink-muted hover:text-ink">Stop</button>
+        {% else %}
+          <button type="button"
+                  dj-hx-action="activity"
+                  hx-get="{{ request.path }}"
+                  hx-target="#live-activity"
+                  hx-swap="outerHTML"
+                  class="text-xs font-medium text-accent-600 hover:text-accent-700">View live</button>
+        {% endif %}
+      </div>
+    </div>
+    {% if live_activity.recent %}
+      <ul class="space-y-1.5">
+        {% for enrollment in live_activity.recent %}
+          <li class="flex items-center justify-between text-sm border-b border-line/60 last:border-0 pb-1.5 last:pb-0">
+            <span class="text-ink font-mono text-xs">{{ enrollment.identity }}</span>
+            <span class="text-ink-muted text-xs">{{ enrollment.created_at|timesince }} ago</span>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="text-sm text-ink-muted">No enrollments yet.</p>
+    {% endif %}
+  {% else %}
+    <p class="text-sm text-ink-muted">This campaign is no longer live.</p>
+  {% endif %}
+</div>

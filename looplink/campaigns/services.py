@@ -4,6 +4,7 @@ from datetime import timedelta
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 
+from looplink.campaigns import activity_cache
 from looplink.campaigns.exceptions import (
     CampaignLockedError,
     CampaignNotEnrollableError,
@@ -156,4 +157,6 @@ def enroll(campaign, raw_identity):
         normalized_identity=normalized,
         defaults={"raw_identity": raw_identity.strip(), "identity_type": identity_type},
     )
+    if created:
+        activity_cache.record_enrollment(campaign, enrollment)
     return enrollment, created
