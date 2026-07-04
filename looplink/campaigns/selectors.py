@@ -1,4 +1,5 @@
 from looplink.campaigns.models import Campaign, CampaignStatus, Enrollment
+from looplink.campaigns.transitions import is_legal_transition
 from looplink.campaigns.validators import offers_present, window_is_valid_for_launch
 
 
@@ -19,19 +20,23 @@ def is_enrollable(campaign):
 
 
 def can_schedule(campaign):
-    return campaign.status == CampaignStatus.DRAFT and window_is_valid_for_launch(campaign) and offers_present(campaign)
+    return (
+        is_legal_transition(campaign.status, CampaignStatus.SCHEDULED)
+        and window_is_valid_for_launch(campaign)
+        and offers_present(campaign)
+    )
 
 
 def can_launch(campaign):
     return (
-        campaign.status in (CampaignStatus.DRAFT, CampaignStatus.SCHEDULED)
+        is_legal_transition(campaign.status, CampaignStatus.LIVE)
         and window_is_valid_for_launch(campaign)
         and offers_present(campaign)
     )
 
 
 def can_end(campaign):
-    return campaign.status == CampaignStatus.LIVE
+    return is_legal_transition(campaign.status, CampaignStatus.ENDED)
 
 
 def can_edit(campaign):

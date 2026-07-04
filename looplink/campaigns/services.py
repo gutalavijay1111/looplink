@@ -11,6 +11,7 @@ from looplink.campaigns.exceptions import (
 )
 from looplink.campaigns.identity import normalize_identity
 from looplink.campaigns.models import Campaign, CampaignStatus, Enrollment, Offer
+from looplink.campaigns.transitions import legal_sources_for
 from looplink.campaigns.validators import (
     validate_details,
     validate_launch_readiness,
@@ -96,7 +97,7 @@ def schedule(campaign, *, expected_updated_at):
     updated = Campaign.objects.filter(
         pk=campaign.pk,
         updated_at=expected_updated_at,
-        status=CampaignStatus.DRAFT,
+        status__in=legal_sources_for(CampaignStatus.SCHEDULED),
     ).update(status=CampaignStatus.SCHEDULED, updated_at=now)
     if not updated:
         _diagnose_write_failure(campaign.pk, expected_updated_at)
@@ -111,7 +112,7 @@ def launch(campaign, *, expected_updated_at):
     updated = Campaign.objects.filter(
         pk=campaign.pk,
         updated_at=expected_updated_at,
-        status__in=[CampaignStatus.DRAFT, CampaignStatus.SCHEDULED],
+        status__in=legal_sources_for(CampaignStatus.LIVE),
     ).update(status=CampaignStatus.LIVE, updated_at=now)
     if not updated:
         _diagnose_write_failure(campaign.pk, expected_updated_at)
@@ -125,7 +126,7 @@ def end(campaign, *, expected_updated_at):
     updated = Campaign.objects.filter(
         pk=campaign.pk,
         updated_at=expected_updated_at,
-        status=CampaignStatus.LIVE,
+        status__in=legal_sources_for(CampaignStatus.ENDED),
     ).update(status=CampaignStatus.ENDED, updated_at=now)
     if not updated:
         _diagnose_write_failure(campaign.pk, expected_updated_at)
