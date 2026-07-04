@@ -11,8 +11,10 @@ def test_distribution_path_encodes_token_not_pk(make_campaign):
 
     path = distribution_path(campaign)
 
+    # Built from the token alone; asserting equality (rather than checking the
+    # pk's digits happen not to appear in the random token) is what actually
+    # proves the pk isn't part of the encoding.
     assert path == f"/c/{campaign.token}/"
-    assert str(campaign.pk) not in path
 
 
 def test_distribution_url_is_absolute(make_campaign):
