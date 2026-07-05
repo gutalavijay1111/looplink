@@ -37,22 +37,12 @@ def test_update_details_on_draft_succeeds(make_campaign):
     assert updated.name == "New name"
 
 
-def test_update_details_rejects_invalid_window(make_campaign):
-    campaign = make_campaign()
-    now = timezone.now()
-
-    with pytest.raises(CampaignValidationError):
-        services.update_details(
-            campaign,
-            expected_updated_at=campaign.updated_at,
-            name="New name",
-            description="",
-            starts_at=now,
-            ends_at=now - timedelta(days=1),
-        )
-
-
 def test_update_details_rejects_name_already_used_by_another_campaign(make_campaign):
+    """
+    services.update_details no longer pre-checks the name itself (that's
+    CampaignDetailsForm's job — see test_forms.py); this covers the DB-level
+    UniqueConstraint backstop that still applies to any direct caller.
+    """
     make_campaign(name="Summer Sale")
     campaign = make_campaign(name="Winter Sale")
     now = timezone.now()
@@ -138,19 +128,6 @@ def test_add_offer_on_draft_succeeds(make_campaign):
 
     assert offer.campaign_id == campaign.pk
     assert offer.params == {"stickers": 1, "per_amount": 10}
-
-
-def test_add_offer_rejects_invalid_params(make_campaign):
-    campaign = make_campaign()
-
-    with pytest.raises(CampaignValidationError):
-        services.add_offer(
-            campaign,
-            expected_updated_at=campaign.updated_at,
-            offer_type=OfferType.STICKER_EARN,
-            params={"stickers": 0, "per_amount": 10},
-        )
-    assert Offer.objects.count() == 0
 
 
 def test_add_offer_on_non_draft_is_locked(make_campaign):

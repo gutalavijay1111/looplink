@@ -1,20 +1,17 @@
+import copy
 from datetime import datetime
 
 from django.shortcuts import get_object_or_404, redirect
-from django.utils import timezone as dj_timezone
 from django.views.generic import TemplateView
 
 from looplink.campaigns import activity_cache, selectors, services
 from looplink.campaigns.distribution import distribution_url, qr_code_data_uri
 from looplink.campaigns.exceptions import CampaignError, CampaignValidationError
+from looplink.campaigns.forms import OFFER_FORMS, CampaignDetailsForm
 from looplink.campaigns.models import Campaign, CampaignStatus, OfferType
 from looplink.django_ext.htmx import DjangoHtmxActionMixin, dj_hx_action
 
-OFFER_PARAM_FIELDS = {
-    OfferType.PRODUCT_PERCENT_DISCOUNT: ["percent", "applies_to"],
-    OfferType.CART_FIXED_DISCOUNT: ["amount_off", "min_basket"],
-    OfferType.STICKER_EARN: ["stickers", "per_amount"],
-}
+DEFAULT_OFFER_TYPE = OfferType.PRODUCT_PERCENT_DISCOUNT
 
 
 class CampaignListView(TemplateView):
@@ -41,27 +38,6 @@ def _parse_expected_updated_at(request):
         return None
 
 
-def _parse_local_datetime(value, field_name):
-    if not value:
-        raise CampaignValidationError({field_name: ["This field is required."]})
-    try:
-        parsed = datetime.fromisoformat(value)
-    except ValueError:
-        raise CampaignValidationError({field_name: ["Enter a valid date and time."]}) from None
-    if dj_timezone.is_naive(parsed):
-        parsed = dj_timezone.make_aware(parsed)
-    return parsed
-
-
-def _default_details_values(campaign):
-    return {
-        "name": campaign.name,
-        "description": campaign.description,
-        "starts_at": campaign.starts_at.strftime("%Y-%m-%dT%H:%M"),
-        "ends_at": campaign.ends_at.strftime("%Y-%m-%dT%H:%M"),
-    }
-
-
 def _build_distribution(request, campaign):
     if campaign.status != CampaignStatus.LIVE:
         return None
@@ -79,8 +55,26 @@ def _build_live_activity(campaign, *, polling=False):
     }
 
 
+def _offer_forms(*, offer_type=None, bound_form=None):
+    """One form instance per offer type, so Alpine can show/hide sections client-side
+    without a round trip. Only the type actually submitted (on a validation error)
+    is bound; the rest render blank, matching pre-Forms behavior."""
+    return {
+        ot: bound_form if bound_form is not None and ot == offer_type else form_cls()
+        for ot, form_cls in OFFER_FORMS.items()
+    }
+
+
 def _build_context(
-    request, campaign, *, error_message=None, field_errors=None, details_values=None, offer_values=None, flash=None
+    request,
+    campaign,
+    *,
+    error_message=None,
+    field_errors=None,
+    details_form=None,
+    offer_type=None,
+    offer_form=None,
+    flash=None,
 ):
     return {
         "campaign": campaign,
@@ -93,8 +87,9 @@ def _build_context(
         "live_activity": _build_live_activity(campaign, polling=False),
         "error_message": error_message,
         "field_errors": field_errors or {},
-        "details_values": details_values or _default_details_values(campaign),
-        "offer_values": offer_values or {},
+        "details_form": details_form or CampaignDetailsForm(instance=campaign),
+        "offer_type": offer_type or DEFAULT_OFFER_TYPE,
+        "offer_forms": _offer_forms(offer_type=offer_type, bound_form=offer_form),
         "flash": flash,
     }
 
@@ -138,25 +133,29 @@ class CampaignDetailView(DjangoHtmxActionMixin, TemplateView):
     @dj_hx_action("post")
     def save_details(self, request, *args, **kwargs):
         campaign = self.get_campaign()
-        details_values = {
-            "name": request.POST.get("name", ""),
-            "description": request.POST.get("description", ""),
-            "starts_at": request.POST.get("starts_at", ""),
-            "ends_at": request.POST.get("ends_at", ""),
-        }
+        # A copy, not `campaign` itself: ModelForm validation (construct_instance)
+        # mutates the instance it's bound to even when the form is invalid, and
+        # `campaign` is also used below to render the page header/etc. — mutating
+        # it in place would show unsaved values as if they'd already been saved.
+        form = CampaignDetailsForm(request.POST, instance=copy.copy(campaign))
+        if not form.is_valid():
+            return self._render_body(request, campaign, details_form=form)
         try:
-            starts_at = _parse_local_datetime(details_values["starts_at"], "starts_at")
-            ends_at = _parse_local_datetime(details_values["ends_at"], "ends_at")
             campaign = services.update_details(
                 campaign,
                 expected_updated_at=_parse_expected_updated_at(request),
-                name=details_values["name"],
-                description=details_values["description"],
-                starts_at=starts_at,
-                ends_at=ends_at,
+                name=form.cleaned_data["name"],
+                description=form.cleaned_data["description"],
+                starts_at=form.cleaned_data["starts_at"],
+                ends_at=form.cleaned_data["ends_at"],
             )
         except CampaignValidationError as exc:
-            return self._render_body(request, campaign, field_errors=exc.errors, details_values=details_values)
+            # Backstop for races the form's pre-check can't see (e.g. another
+            # request claimed the name between validation and this save).
+            for field, messages in exc.errors.items():
+                for message in messages:
+                    form.add_error(field if field in form.fields else None, message)
+            return self._render_body(request, campaign, details_form=form)
         except CampaignError as exc:
             return self._render_body(request, campaign, error_message=str(exc))
         return self._render_body(request, campaign, flash="Saved")
@@ -165,18 +164,24 @@ class CampaignDetailView(DjangoHtmxActionMixin, TemplateView):
     def add_offer(self, request, *args, **kwargs):
         campaign = self.get_campaign()
         offer_type = request.POST.get("offer_type", "")
-        fields = OFFER_PARAM_FIELDS.get(offer_type, [])
-        params = {field: request.POST.get(field, "") for field in fields}
+        form_cls = OFFER_FORMS.get(offer_type)
+        if form_cls is None:
+            return self._render_body(request, campaign, error_message=f"Unknown offer type: {offer_type}")
+        form = form_cls(request.POST)
+        if not form.is_valid():
+            return self._render_body(request, campaign, offer_type=offer_type, offer_form=form)
         try:
             services.add_offer(
                 campaign,
                 expected_updated_at=_parse_expected_updated_at(request),
                 offer_type=offer_type,
-                params=params,
+                params=form.cleaned_data,
             )
         except CampaignValidationError as exc:
-            offer_values = {"offer_type": offer_type, **params}
-            return self._render_body(request, campaign, field_errors=exc.errors, offer_values=offer_values)
+            for field, messages in exc.errors.items():
+                for message in messages:
+                    form.add_error(field if field in form.fields else None, message)
+            return self._render_body(request, campaign, offer_type=offer_type, offer_form=form)
         except CampaignError as exc:
             return self._render_body(request, campaign, error_message=str(exc))
         return self._render_body(request, campaign, flash="Offer added")

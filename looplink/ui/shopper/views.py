@@ -1,14 +1,13 @@
 from django.views.generic import TemplateView
 
 from looplink.campaigns import selectors, services
-from looplink.campaigns.exceptions import CampaignError, CampaignValidationError
+from looplink.campaigns.exceptions import CampaignError
+from looplink.campaigns.forms import EnrollForm
 from looplink.campaigns.models import CampaignStatus
 from looplink.django_ext.htmx import DjangoHtmxActionMixin, dj_hx_action
 
 
-def _build_context(
-    campaign, *, field_errors=None, error_message=None, identity_value="", enrolled=False, just_created=False
-):
+def _build_context(campaign, *, error_message=None, enroll_form=None, enrolled=False, just_created=False):
     if campaign is None:
         return {"state": "invalid", "campaign": None}
     if campaign.status != CampaignStatus.LIVE:
@@ -19,8 +18,7 @@ def _build_context(
         "offers": campaign.offers.all(),
         "enrolled": enrolled,
         "just_created": just_created,
-        "field_errors": field_errors or {},
-        "identity_value": identity_value,
+        "enroll_form": enroll_form or EnrollForm(),
         "error_message": error_message,
     }
 
@@ -52,11 +50,11 @@ class CampaignView(DjangoHtmxActionMixin, TemplateView):
         if campaign is None:
             return self._render_body(request, None)
 
-        identity_value = request.POST.get("identity", "")
+        form = EnrollForm(request.POST)
+        if not form.is_valid():
+            return self._render_body(request, campaign, enroll_form=form)
         try:
-            _enrollment, created = services.enroll(campaign, identity_value)
-        except CampaignValidationError as exc:
-            return self._render_body(request, campaign, field_errors=exc.errors, identity_value=identity_value)
+            _enrollment, created = services.enroll(campaign, form.cleaned_data["identity"])
         except CampaignError as exc:
             return self._render_body(request, campaign, error_message=str(exc))
         return self._render_body(request, campaign, enrolled=True, just_created=created)

@@ -22,6 +22,11 @@ class IdentityType(models.TextChoices):
     PHONE = "phone", "Phone"
 
 
+# Shared with CampaignDetailsForm.clean_name (looplink.campaigns.forms), which checks this same
+# case-insensitive rule ahead of the DB round trip; the constraint below is the actual backstop.
+NAME_ALREADY_EXISTS_MSG = "A campaign with this name already exists."
+
+
 class Campaign(models.Model):
     name = models.CharField(max_length=200)
     description = models.TextField(blank=True, default="")
@@ -32,9 +37,6 @@ class Campaign(models.Model):
         choices=CampaignStatus.choices,
         default=CampaignStatus.DRAFT,
     )
-    # Generated eagerly so a distribution link/QR can be produced without a schema
-    # change once the campaign goes live; resolving it while non-live just renders
-    # the appropriate non-live state rather than the offers.
     token = models.CharField(max_length=32, unique=True, default=generate_campaign_token, editable=False)
     created_at = models.DateTimeField(auto_now_add=True)
     # Used as the optimistic-concurrency check for stale edits: a save is only
@@ -43,7 +45,11 @@ class Campaign(models.Model):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(Lower("name"), name="unique_campaign_name_ci"),
+            models.UniqueConstraint(
+                Lower("name"),
+                name="unique_campaign_name_ci",
+                violation_error_message=NAME_ALREADY_EXISTS_MSG,
+            ),
         ]
 
     def __str__(self):

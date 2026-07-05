@@ -100,35 +100,23 @@
                  value="{{ campaign.updated_at.isoformat }}">
           <div>
             <label class="field-label" for="id_name">Name</label>
-            <input id="id_name"
-                   type="text"
-                   name="name"
-                   value="{{ details_values.name }}"
-                   class="field-input">
-            {% if field_errors.name %}<p class="field-error">{{ field_errors.name|join:" " }}</p>{% endif %}
+            {{ details_form.name }}
+            {% if details_form.name.errors %}<p class="field-error">{{ details_form.name.errors|join:" " }}</p>{% endif %}
           </div>
           <div>
             <label class="field-label" for="id_description">Description</label>
-            <textarea id="id_description" name="description" rows="2" class="field-input">{{ details_values.description }}</textarea>
+            {{ details_form.description }}
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label class="field-label" for="id_starts_at">Starts (UTC)</label>
-              <input id="id_starts_at"
-                     type="datetime-local"
-                     name="starts_at"
-                     value="{{ details_values.starts_at }}"
-                     class="field-input">
-              {% if field_errors.starts_at %}<p class="field-error">{{ field_errors.starts_at|join:" " }}</p>{% endif %}
+              {{ details_form.starts_at }}
+              {% if details_form.starts_at.errors %}<p class="field-error">{{ details_form.starts_at.errors|join:" " }}</p>{% endif %}
             </div>
             <div>
               <label class="field-label" for="id_ends_at">Ends (UTC)</label>
-              <input id="id_ends_at"
-                     type="datetime-local"
-                     name="ends_at"
-                     value="{{ details_values.ends_at }}"
-                     class="field-input">
-              {% if field_errors.ends_at %}<p class="field-error">{{ field_errors.ends_at|join:" " }}</p>{% endif %}
+              {{ details_form.ends_at }}
+              {% if details_form.ends_at.errors %}<p class="field-error">{{ details_form.ends_at.errors|join:" " }}</p>{% endif %}
             </div>
           </div>
           <div class="pt-1 flex items-center gap-3">
@@ -242,7 +230,7 @@
               hx-swap="outerHTML"
               hx-disabled-elt="find button[type=submit]"
               class="border border-line rounded-lg p-4 bg-cream/60"
-              x-data="{ offerType: '{{ offer_values.offer_type|default:'PRODUCT_PERCENT_DISCOUNT' }}' }">
+              x-data="{ offerType: '{{ offer_type }}' }">
           <input type="hidden"
                  name="expected_updated_at"
                  value="{{ campaign.updated_at.isoformat }}">
@@ -259,67 +247,51 @@
                class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
             <div>
               <label class="field-label" for="id_percent">Percent off</label>
-              <input id="id_percent"
-                     type="number"
-                     step="0.01"
-                     name="percent"
-                     value="{{ offer_values.percent }}"
-                     class="field-input">
-              {% if field_errors.percent %}<p class="field-error">{{ field_errors.percent|join:" " }}</p>{% endif %}
+              {{ offer_forms.PRODUCT_PERCENT_DISCOUNT.percent }}
+              {% if offer_forms.PRODUCT_PERCENT_DISCOUNT.percent.errors %}
+                <p class="field-error">{{ offer_forms.PRODUCT_PERCENT_DISCOUNT.percent.errors|join:" " }}</p>
+              {% endif %}
             </div>
             <div>
               <label class="field-label" for="id_applies_to">Applies to</label>
-              <input id="id_applies_to"
-                     type="text"
-                     name="applies_to"
-                     value="{{ offer_values.applies_to }}"
-                     class="field-input">
-              {% if field_errors.applies_to %}<p class="field-error">{{ field_errors.applies_to|join:" " }}</p>{% endif %}
+              {{ offer_forms.PRODUCT_PERCENT_DISCOUNT.applies_to }}
+              {% if offer_forms.PRODUCT_PERCENT_DISCOUNT.applies_to.errors %}
+                <p class="field-error">{{ offer_forms.PRODUCT_PERCENT_DISCOUNT.applies_to.errors|join:" " }}</p>
+              {% endif %}
             </div>
           </div>
           <div x-show="offerType === 'CART_FIXED_DISCOUNT'"
                class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
             <div>
               <label class="field-label" for="id_amount_off">Amount off</label>
-              <input id="id_amount_off"
-                     type="number"
-                     step="0.01"
-                     name="amount_off"
-                     value="{{ offer_values.amount_off }}"
-                     class="field-input">
-              {% if field_errors.amount_off %}<p class="field-error">{{ field_errors.amount_off|join:" " }}</p>{% endif %}
+              {{ offer_forms.CART_FIXED_DISCOUNT.amount_off }}
+              {% if offer_forms.CART_FIXED_DISCOUNT.amount_off.errors %}
+                <p class="field-error">{{ offer_forms.CART_FIXED_DISCOUNT.amount_off.errors|join:" " }}</p>
+              {% endif %}
             </div>
             <div>
               <label class="field-label" for="id_min_basket">Minimum basket</label>
-              <input id="id_min_basket"
-                     type="number"
-                     step="0.01"
-                     name="min_basket"
-                     value="{{ offer_values.min_basket }}"
-                     class="field-input">
-              {% if field_errors.min_basket %}<p class="field-error">{{ field_errors.min_basket|join:" " }}</p>{% endif %}
+              {{ offer_forms.CART_FIXED_DISCOUNT.min_basket }}
+              {% if offer_forms.CART_FIXED_DISCOUNT.min_basket.errors %}
+                <p class="field-error">{{ offer_forms.CART_FIXED_DISCOUNT.min_basket.errors|join:" " }}</p>
+              {% endif %}
             </div>
           </div>
           <div x-show="offerType === 'STICKER_EARN'"
                class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
             <div>
               <label class="field-label" for="id_stickers">Stickers earned</label>
-              <input id="id_stickers"
-                     type="number"
-                     name="stickers"
-                     value="{{ offer_values.stickers }}"
-                     class="field-input">
-              {% if field_errors.stickers %}<p class="field-error">{{ field_errors.stickers|join:" " }}</p>{% endif %}
+              {{ offer_forms.STICKER_EARN.stickers }}
+              {% if offer_forms.STICKER_EARN.stickers.errors %}
+                <p class="field-error">{{ offer_forms.STICKER_EARN.stickers.errors|join:" " }}</p>
+              {% endif %}
             </div>
             <div>
               <label class="field-label" for="id_per_amount">Per amount spent</label>
-              <input id="id_per_amount"
-                     type="number"
-                     step="0.01"
-                     name="per_amount"
-                     value="{{ offer_values.per_amount }}"
-                     class="field-input">
-              {% if field_errors.per_amount %}<p class="field-error">{{ field_errors.per_amount|join:" " }}</p>{% endif %}
+              {{ offer_forms.STICKER_EARN.per_amount }}
+              {% if offer_forms.STICKER_EARN.per_amount.errors %}
+                <p class="field-error">{{ offer_forms.STICKER_EARN.per_amount.errors|join:" " }}</p>
+              {% endif %}
             </div>
           </div>
           <button type="submit" class="btn btn-outline">

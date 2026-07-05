@@ -71,15 +71,8 @@
               class="space-y-3">
           <div>
             <label class="field-label" for="id_identity">Phone or email</label>
-            <input id="id_identity"
-                   type="text"
-                   name="identity"
-                   value="{{ identity_value }}"
-                   class="field-input"
-                   placeholder="you@example.com"
-                   inputmode="email"
-                   autocomplete="email">
-            {% if field_errors.identity %}<p class="field-error">{{ field_errors.identity|join:" " }}</p>{% endif %}
+            {{ enroll_form.identity }}
+            {% if enroll_form.identity.errors %}<p class="field-error">{{ enroll_form.identity.errors|join:" " }}</p>{% endif %}
           </div>
           <button type="submit" class="btn btn-accent w-full">
             Get my offers

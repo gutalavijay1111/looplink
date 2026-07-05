@@ -15,11 +15,7 @@ from looplink.campaigns.exceptions import (
 from looplink.campaigns.identity import normalize_identity
 from looplink.campaigns.models import Campaign, CampaignStatus, Enrollment, Offer
 from looplink.campaigns.transitions import legal_sources_for
-from looplink.campaigns.validators import (
-    validate_details,
-    validate_launch_readiness,
-    validate_offer_params,
-)
+from looplink.campaigns.validators import validate_launch_readiness
 
 DEFAULT_WINDOW = timedelta(days=7)
 DUPLICATE_NAME_ERROR = {"name": ["A campaign with this name already exists."]}
@@ -54,7 +50,9 @@ def _diagnose_write_failure(pk, expected_updated_at, *, required_status=None):
 
 @transaction.atomic
 def update_details(campaign, *, expected_updated_at, name, description, starts_at, ends_at):
-    validate_details(name=name, starts_at=starts_at, ends_at=ends_at, exclude_pk=campaign.pk)
+    """Callers are expected to have already run this through CampaignDetailsForm;
+    the conditional UPDATE below (and the IntegrityError catch) is what actually
+    guards correctness — the atomic write can't be skipped, unlike field validation."""
     now = timezone.now()
     try:
         # Nested atomic() opens a savepoint, so a name-collision IntegrityError
@@ -88,9 +86,10 @@ def _claim_version_for_draft_edit(campaign, expected_updated_at):
 
 @transaction.atomic
 def add_offer(campaign, *, expected_updated_at, offer_type, params):
-    cleaned_params = validate_offer_params(offer_type, params)
+    """Callers are expected to have already validated params via the matching
+    OFFER_FORMS entry (looplink.campaigns.forms) — this only owns the atomic write."""
     new_updated_at = _claim_version_for_draft_edit(campaign, expected_updated_at)
-    offer = Offer.objects.create(campaign=campaign, offer_type=offer_type, params=cleaned_params)
+    offer = Offer.objects.create(campaign=campaign, offer_type=offer_type, params=params)
     campaign.updated_at = new_updated_at
     return offer
 
