@@ -2,21 +2,12 @@ from decimal import Decimal
 
 from django import forms
 
+from looplink.campaigns import validators
 from looplink.campaigns.exceptions import CampaignValidationError
 from looplink.campaigns.identity import normalize_identity
-from looplink.campaigns.models import NAME_ALREADY_EXISTS_MSG, Campaign, OfferType
+from looplink.campaigns.models import Campaign, OfferType
 
 FIELD_INPUT_ATTRS = {"class": "field-input"}
-
-REQUIRED_MSG = "This field is required."
-POSITIVE_MSG = "Must be greater than 0."
-NON_NEGATIVE_MSG = "Must be 0 or greater."
-END_AFTER_START_MSG = "End must be after start."
-PERCENT_MAX = 100
-
-
-def max_value_msg(max_value):
-    return f"Must be at most {max_value}."
 
 
 class CampaignDetailsForm(forms.ModelForm):
@@ -49,26 +40,21 @@ class CampaignDetailsForm(forms.ModelForm):
         }
 
     def clean_name(self):
-        # The model's UniqueConstraint(Lower("name")) is the authoritative backstop
-        # (validated again on save); this pre-check just attaches the error to the
-        # right field instead of the form-wide "__all__" bucket Django would use.
+        # validators.validate_name_unique is the actual rule; this just supplies
+        # the stripped value and the current instance's pk to exclude.
         name = self.cleaned_data["name"].strip()
-        conflicts = Campaign.objects.filter(name__iexact=name)
-        if self.instance.pk is not None:
-            conflicts = conflicts.exclude(pk=self.instance.pk)
-        if conflicts.exists():
-            raise forms.ValidationError(NAME_ALREADY_EXISTS_MSG)
+        validators.validate_name_unique(name, exclude_pk=self.instance.pk)
         return name
 
     def clean(self):
         cleaned = super().clean()
         starts_at, ends_at = cleaned.get("starts_at"), cleaned.get("ends_at")
         if starts_at and ends_at and ends_at <= starts_at:
-            self.add_error("ends_at", END_AFTER_START_MSG)
+            self.add_error("ends_at", validators.END_AFTER_START_MSG)
         return cleaned
 
 
-def _offer_attrs(offer_type):
+def _offer_attrs(offer_type, **extra):
     """
     All three offer-type sections are always in the DOM at once — Alpine's
     x-show just toggles `display:none` on whichever two aren't selected — so a
@@ -79,7 +65,7 @@ def _offer_attrs(offer_type):
     exactly one section's fields required at a time, in the DOM the form
     actually renders — not a second, independent copy of "which type is active."
     """
-    return {**FIELD_INPUT_ATTRS, "x-bind:required": f"offerType === '{offer_type}'"}
+    return {**FIELD_INPUT_ATTRS, "x-bind:required": f"offerType === '{offer_type}'", **extra}
 
 
 class _OfferForm(forms.Form):
@@ -96,46 +82,64 @@ class _OfferForm(forms.Form):
 
 
 class PercentDiscountOfferForm(_OfferForm):
+    # No min_value/max_value on the field itself — validators.validate_positive is
+    # the one place that decides "acceptable," called from clean_percent() below.
+    # The widget's min/max attrs are set from that same PERCENT_MAX constant, so
+    # the browser's native check and the server check can't drift apart.
     percent = forms.DecimalField(
-        min_value=Decimal("0.01"),
-        max_value=PERCENT_MAX,
         decimal_places=2,
-        error_messages={"min_value": POSITIVE_MSG, "max_value": max_value_msg(PERCENT_MAX)},
-        widget=forms.NumberInput(attrs=_offer_attrs(OfferType.PRODUCT_PERCENT_DISCOUNT)),
+        widget=forms.NumberInput(
+            attrs=_offer_attrs(
+                OfferType.PRODUCT_PERCENT_DISCOUNT, min="0.01", max=str(validators.PERCENT_MAX), step="0.01"
+            )
+        ),
     )
     applies_to = forms.CharField(
-        error_messages={"required": REQUIRED_MSG},
+        error_messages={"required": validators.REQUIRED_MSG},
         widget=forms.TextInput(attrs=_offer_attrs(OfferType.PRODUCT_PERCENT_DISCOUNT)),
     )
+
+    def clean_percent(self):
+        return validators.validate_positive(self.cleaned_data.get("percent"), max_value=validators.PERCENT_MAX)
 
 
 class CartFixedDiscountOfferForm(_OfferForm):
     amount_off = forms.DecimalField(
-        min_value=Decimal("0.01"),
         decimal_places=2,
-        error_messages={"min_value": POSITIVE_MSG},
-        widget=forms.NumberInput(attrs=_offer_attrs(OfferType.CART_FIXED_DISCOUNT)),
+        widget=forms.NumberInput(
+            attrs=_offer_attrs(OfferType.CART_FIXED_DISCOUNT, min="0.01", step="0.01"),
+        ),
     )
     min_basket = forms.DecimalField(
-        min_value=Decimal("0"),
         decimal_places=2,
-        error_messages={"min_value": NON_NEGATIVE_MSG},
-        widget=forms.NumberInput(attrs=_offer_attrs(OfferType.CART_FIXED_DISCOUNT)),
+        widget=forms.NumberInput(
+            attrs=_offer_attrs(OfferType.CART_FIXED_DISCOUNT, min="0", step="0.01"),
+        ),
     )
+
+    def clean_amount_off(self):
+        return validators.validate_positive(self.cleaned_data.get("amount_off"))
+
+    def clean_min_basket(self):
+        return validators.validate_non_negative(self.cleaned_data.get("min_basket"))
 
 
 class StickerEarnOfferForm(_OfferForm):
     stickers = forms.IntegerField(
-        min_value=1,
-        error_messages={"min_value": POSITIVE_MSG},
-        widget=forms.NumberInput(attrs=_offer_attrs(OfferType.STICKER_EARN)),
+        widget=forms.NumberInput(attrs=_offer_attrs(OfferType.STICKER_EARN, min="1", step="1")),
     )
     per_amount = forms.DecimalField(
-        min_value=Decimal("0.01"),
         decimal_places=2,
-        error_messages={"min_value": POSITIVE_MSG},
-        widget=forms.NumberInput(attrs=_offer_attrs(OfferType.STICKER_EARN)),
+        widget=forms.NumberInput(
+            attrs=_offer_attrs(OfferType.STICKER_EARN, min="0.01", step="0.01"),
+        ),
     )
+
+    def clean_stickers(self):
+        return validators.validate_positive(self.cleaned_data.get("stickers"))
+
+    def clean_per_amount(self):
+        return validators.validate_positive(self.cleaned_data.get("per_amount"))
 
 
 OFFER_FORMS = {
