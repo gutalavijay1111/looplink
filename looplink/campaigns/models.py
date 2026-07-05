@@ -1,4 +1,4 @@
-from django.core.exceptions import ValidationError
+from django.core.exceptions import NON_FIELD_ERRORS, ValidationError
 from django.db import models
 from django.db.models.functions import Lower
 
@@ -95,7 +95,16 @@ class Campaign(models.Model):
                 try:
                     validate_launch_readiness(self)
                 except CampaignValidationError as exc:
-                    raise ValidationError(exc.errors) from None
+                    # "offers" isn't a real field (campaign.offers is a reverse FK,
+                    # not a column) — a ModelForm without that field name raises
+                    # ValueError trying to attach an error to it, instead of just
+                    # failing validation. Remap it to NON_FIELD_ERRORS so this is
+                    # safe to raise from any form, not only ones exposing "offers".
+                    errors = {
+                        (NON_FIELD_ERRORS if field == "offers" else field): messages
+                        for field, messages in exc.errors.items()
+                    }
+                    raise ValidationError(errors) from None
         if not is_editable(current.status):
             changed = {field for field in self.LOCKED_FIELDS if getattr(self, field) != getattr(current, field)}
             if changed:
