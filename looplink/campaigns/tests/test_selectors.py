@@ -50,10 +50,9 @@ def test_scheduled_campaign_can_launch_but_not_schedule_again(make_campaign, mak
     assert transitions["can_end"] is False
 
 
-def test_live_campaign_is_enrollable_and_can_end(make_campaign):
+def test_live_campaign_can_end(make_campaign):
     campaign = make_campaign(status=CampaignStatus.LIVE)
 
-    assert selectors.is_enrollable(campaign) is True
     assert selectors.available_transitions(campaign)["can_end"] is True
 
 
@@ -63,7 +62,6 @@ def test_ended_campaign_has_no_legal_transitions(make_campaign):
     transitions = selectors.available_transitions(campaign)
 
     assert not any(transitions.values())
-    assert selectors.is_enrollable(campaign) is False
 
 
 def test_get_campaign_by_token_returns_none_for_unknown_token():

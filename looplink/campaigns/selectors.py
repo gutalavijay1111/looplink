@@ -1,4 +1,4 @@
-from looplink.campaigns.models import Campaign, CampaignStatus, Enrollment
+from looplink.campaigns.models import Campaign, CampaignStatus
 from looplink.campaigns.transitions import is_legal_transition
 from looplink.campaigns.validators import offers_present, window_is_valid_for_launch
 
@@ -7,16 +7,8 @@ def list_campaigns():
     return Campaign.objects.order_by("-created_at")
 
 
-def get_campaign(pk):
-    return Campaign.objects.get(pk=pk)
-
-
 def get_campaign_by_token(token):
     return Campaign.objects.filter(token=token).first()
-
-
-def is_enrollable(campaign):
-    return campaign.status == CampaignStatus.LIVE
 
 
 def can_schedule(campaign):
@@ -55,10 +47,6 @@ def available_transitions(campaign):
         "can_launch": can_launch(campaign),
         "can_end": can_end(campaign),
     }
-
-
-def find_enrollment(campaign, normalized_identity):
-    return Enrollment.objects.filter(campaign=campaign, normalized_identity=normalized_identity).first()
 
 
 def enrollment_count(campaign):
