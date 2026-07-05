@@ -54,6 +54,23 @@ class CampaignDetailsForm(forms.ModelForm):
         return cleaned
 
 
+class CampaignAdminForm(CampaignDetailsForm):
+    """
+    Django admin's edit form — adds `status` on top of CampaignDetailsForm so an
+    admin can drive transitions directly from the change page. Campaign.clean()/
+    save() (see models.py) enforce legal transitions and launch readiness no
+    matter who's calling save(), so an illegal status change here is rejected the
+    same as it would be anywhere else.
+    """
+
+    class Meta(CampaignDetailsForm.Meta):
+        fields = [*CampaignDetailsForm.Meta.fields, "status"]
+        error_messages = {
+            **CampaignDetailsForm.Meta.error_messages,
+            "status": {"required": "Status is required."},
+        }
+
+
 def _offer_attrs(offer_type, **extra):
     """
     All three offer-type sections are always in the DOM at once — Alpine's
