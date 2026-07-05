@@ -12,9 +12,9 @@ from looplink.campaigns.exceptions import (
     IllegalTransitionError,
     StaleCampaignError,
 )
-from looplink.campaigns.identity import normalize_identity
 from looplink.campaigns.models import Campaign, CampaignStatus, Enrollment, Offer
 from looplink.campaigns.transitions import legal_sources_for
+from looplink.campaigns.utilities import normalize_identity
 from looplink.campaigns.validators import validate_launch_readiness
 
 DEFAULT_WINDOW = timedelta(days=7)

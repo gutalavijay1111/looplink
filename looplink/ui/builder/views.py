@@ -5,10 +5,10 @@ from django.shortcuts import get_object_or_404, redirect
 from django.views.generic import TemplateView
 
 from looplink.campaigns import activity_cache, selectors, services
-from looplink.campaigns.distribution import distribution_url, qr_code_data_uri
 from looplink.campaigns.exceptions import CampaignError, CampaignValidationError
 from looplink.campaigns.forms import OFFER_FORMS, CampaignDetailsForm
 from looplink.campaigns.models import Campaign, CampaignStatus, OfferType
+from looplink.campaigns.utilities import distribution_url, qr_code_data_uri
 from looplink.django_ext.htmx import DjangoHtmxActionMixin, dj_hx_action
 
 DEFAULT_OFFER_TYPE = OfferType.PRODUCT_PERCENT_DISCOUNT

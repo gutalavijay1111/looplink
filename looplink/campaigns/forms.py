@@ -4,8 +4,8 @@ from django import forms
 
 from looplink.campaigns import validators
 from looplink.campaigns.exceptions import CampaignValidationError
-from looplink.campaigns.identity import normalize_identity
 from looplink.campaigns.models import Campaign, OfferType
+from looplink.campaigns.utilities import normalize_identity
 
 FIELD_INPUT_ATTRS = {"class": "field-input"}
 
