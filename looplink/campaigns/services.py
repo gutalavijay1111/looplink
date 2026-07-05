@@ -13,7 +13,7 @@ from looplink.campaigns.exceptions import (
     StaleCampaignError,
 )
 from looplink.campaigns.models import Campaign, CampaignStatus, Enrollment, Offer
-from looplink.campaigns.transitions import legal_sources_for
+from looplink.campaigns.transitions import EDITABLE_STATUSES, legal_sources_for
 from looplink.campaigns.utilities import normalize_identity
 from looplink.campaigns.validators import validate_launch_readiness
 
@@ -61,7 +61,7 @@ def update_details(campaign, *, expected_updated_at, name, description, starts_a
             updated = Campaign.objects.filter(
                 pk=campaign.pk,
                 updated_at=expected_updated_at,
-                status=CampaignStatus.DRAFT,
+                status__in=EDITABLE_STATUSES,
             ).update(name=name, description=description, starts_at=starts_at, ends_at=ends_at, updated_at=now)
     except IntegrityError:
         raise CampaignValidationError(DUPLICATE_NAME_ERROR) from None
@@ -77,7 +77,7 @@ def _claim_version_for_draft_edit(campaign, expected_updated_at):
     updated = Campaign.objects.filter(
         pk=campaign.pk,
         updated_at=expected_updated_at,
-        status=CampaignStatus.DRAFT,
+        status__in=EDITABLE_STATUSES,
     ).update(updated_at=now)
     if not updated:
         _diagnose_write_failure(campaign.pk, expected_updated_at, required_status=CampaignStatus.DRAFT)

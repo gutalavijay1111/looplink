@@ -1,4 +1,5 @@
 import pytest
+from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 
 from looplink.campaigns.models import CampaignStatus, Enrollment, IdentityType
@@ -21,9 +22,14 @@ def test_campaign_token_is_generated_and_unique(make_campaign):
 
 
 def test_campaign_name_must_be_unique_case_insensitively(make_campaign):
+    # Campaign.save() now runs full_clean() before writing, so the model-level
+    # validate_unique() check catches this before the DB constraint ever would —
+    # ValidationError, not IntegrityError. The constraint (see Meta.constraints)
+    # is still the actual backstop for the .update()-based writes in services.py,
+    # which never call save()/clean() at all.
     make_campaign(name="Summer Sale")
 
-    with pytest.raises(IntegrityError):
+    with pytest.raises(ValidationError):
         make_campaign(name="summer sale")
 
 

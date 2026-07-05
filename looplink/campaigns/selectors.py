@@ -1,5 +1,5 @@
 from looplink.campaigns.models import Campaign, CampaignStatus
-from looplink.campaigns.transitions import is_legal_transition
+from looplink.campaigns.transitions import is_editable, is_legal_transition
 from looplink.campaigns.validators import offers_present, window_is_valid_for_launch
 
 
@@ -32,7 +32,7 @@ def can_end(campaign):
 
 
 def can_edit(campaign):
-    return campaign.status == CampaignStatus.DRAFT
+    return is_editable(campaign.status)
 
 
 def available_transitions(campaign):

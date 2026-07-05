@@ -19,3 +19,13 @@ def is_legal_transition(from_status, to_status):
 def legal_sources_for(to_status):
     """Statuses a campaign may legally be in right now to reach to_status next."""
     return frozenset(from_status for from_status, targets in LEGAL_TRANSITIONS.items() if to_status in targets)
+
+
+# Also a single source of truth: selectors.can_edit, services' draft-only write
+# guards, and Campaign.clean()'s model-level backstop all read this instead of
+# each hand-writing their own "== CampaignStatus.DRAFT" copy of the same rule.
+EDITABLE_STATUSES = frozenset({CampaignStatus.DRAFT})
+
+
+def is_editable(status):
+    return status in EDITABLE_STATUSES
