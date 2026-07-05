@@ -3,48 +3,32 @@
 
 {% js_entry "base/common_entry" %}
 
-{% block title %}Default Page{% endblock title %}
+{% block title %}LoopLink{% endblock title %}
+
+{% block body_attrs %}
+  class="bg-cream min-h-screen"
+{% endblock body_attrs %}
 
 {% block content %}
-  <div class="p-4 text-md">
-    <h1 class="text-2xl font-bold text-gray-900">
-      Welcome to the Looplink starter project!
-    </h1>
-    <p class="my-2">
-      You can find this page in <code class="font-bold">looplink.ui.base.views</code>.
-      This is the <code class="font-bold">default</code> view.
+  <div class="max-w-3xl mx-auto px-4 sm:px-6 py-16 text-center">
+    <h1 class="font-serif text-4xl font-medium text-ink mb-3">LoopLink</h1>
+    <p class="text-ink-muted mb-10">
+      Build a campaign as a retailer, then open its distribution link to see what a shopper sees.
     </p>
-    <p class="my-2">
-      <a href="{{ htmx_example_url }}" class="font-bold text-blue-600">Go here</a> to see
-      a view using <code class="font-bold">DjangoHtmxActionMixin</code>
-      (a custom utility we built, located in <code class="font-bold">looplink.django_ext.htmx</code>).
-    </p>
-    <p class="my-2">
-      In the templates, you will see <code class="font-bold">js_entry</code> being used.
-      This extension is something we created. It's a quick way to define a JavaScript entry
-      point for our Webpack build.
-      See its usage in the <code class="font-bold">looplink.ui.base</code> templates.
-    </p>
-    <p class="my-2">
-      The HTMX example uses its own <code class="font-bold">js_entry</code> module to show how
-      to set that up, but you can use <code class="font-bold">base/common_entry</code>
-      if you don't need additional JavaScript.
-    </p>
-    <p class="my-2">
-      Any JavaScript files you want to reference in the Webpack build can be found in an
-      <code class="font-bold">assets</code> folder,
-      like the one in <code class="font-bold">looplink.ui.base</code>.
-      Stylesheets can be found in the <code class="font-bold">styles</code> folder located
-      at the project root.
-    </p>
-    <p class="my-2">
-      Looking to create an API? Check out the docs for
-      <a href="https://www.django-rest-framework.org/">Django REST Framework</a>,
-      or feel free to use a different library.
-    </p>
-    <p class="my-2">
-      Lastly, while we have code-organization best practices at Looplink, we're leaving
-      those specifics open-ended for you. :)
-    </p>
+    <div class="flex flex-col sm:flex-row gap-4 justify-center items-stretch sm:items-center">
+      <a href="{% url 'builder_campaign_list' %}" class="card p-6 flex-1 max-w-sm hover:border-accent-300 transition-colors">
+        <h2 class="font-serif text-lg text-ink mb-1">I'm a retailer/brand</h2>
+        <p class="text-sm text-ink-muted mb-3">Create, edit, and launch campaigns.</p>
+        <span class="btn btn-accent w-full">Open the Campaign Builder</span>
+      </a>
+      <div class="card p-6 flex-1 max-w-sm">
+        <h2 class="font-serif text-lg text-ink mb-1">I'm a shopper</h2>
+        <p class="text-sm text-ink-muted">
+          There's no direct link here — a shopper arrives by scanning a live campaign's QR code
+          (or opening its link). Launch a campaign in the Builder, then use its "Distribute" section
+          to grab that link and try it yourself.
+        </p>
+      </div>
+    </div>
   </div>
 {% endblock content %}
